@@ -237,10 +237,6 @@
       .connector-option input { width: auto; margin: 0; accent-color: #56bbaa; }
       .connector-option span { font-weight: 650; }
       .connector-option:focus-within { outline: 2px solid #56bbaa; outline-offset: 2px; }
-      .connector-guide { margin: 0 0 18px; padding: 14px 16px; border: 1px solid #398266; border-radius: 9px; background: #113629; }
-      .connector-guide[hidden] { display: none; }
-      .connector-guide p { margin: 5px 0 8px; }
-      .connector-guide a { color: #a7ebc4; }
       .integration-auth { max-width: 650px; }
       .integration-auth[hidden], .integration-private[hidden], .integration-created[hidden] { display: none; }
       .integration-key-row { display: flex; gap: 10px; }
@@ -374,8 +370,6 @@
       body[data-theme="light"] .connector-option:has(input:checked) { border-color: #16834a; background: #eaf6ed; }
       body[data-theme="light"] .connector-option input { accent-color: #16834a; }
       body[data-theme="light"] .connector-option:focus-within { outline-color: #16834a; }
-      body[data-theme="light"] .connector-guide { border-color: #95cba5; background: #eef9f1; }
-      body[data-theme="light"] .connector-guide a { color: #17613b; }
       body[data-theme="light"] .integration-hint, body[data-theme="light"] .integration-app small { color: #668471; }
       body[data-theme="light"] .integration-private { border-color: #d5e9dc; }
       body[data-theme="light"] .integration-created { border-color: #95cba5; background: #eef9f1; }
@@ -579,18 +573,13 @@
         <h2 id="integrations-title">Integrations</h2>
         <p>Register a fictional app and receive its synthetic security events. App registration is restricted to the project owner; the public demo login does not unlock it.</p>
         <fieldset class="connector-picker" id="connector-picker">
-          <legend>Select the Student Portal connector</legend>
+          <legend>Select your backend framework</legend>
           <div class="connector-options">
-            <label class="connector-option"><input type="radio" name="student-connector" value="fastapi" /><span>Python — FastAPI</span></label>
-            <label class="connector-option"><input type="radio" name="student-connector" value="spring" /><span>Java — Spring Boot</span></label>
-            <label class="connector-option"><input type="radio" name="student-connector" value="express" /><span>Node.js — Express</span></label>
+            <label class="connector-option"><input type="radio" name="integration-connector" value="fastapi" /><span>Python — FastAPI</span></label>
+            <label class="connector-option"><input type="radio" name="integration-connector" value="spring" /><span>Java — Spring Boot</span></label>
+            <label class="connector-option"><input type="radio" name="integration-connector" value="express" /><span>Node.js — Express</span></label>
           </div>
         </fieldset>
-        <div id="connector-guide" class="connector-guide" hidden>
-          <strong>Correct connector: Python — FastAPI</strong>
-          <p>The fictional Student Portal runs on FastAPI. Unlock the owner view below to inspect its activity or register a demo app.</p>
-          <a id="student-portal-link" href="http://127.0.0.1:8000/" target="_blank" rel="noopener" hidden>Open local Student Portal ↗</a>
-        </div>
         <div id="integration-status" class="integration-status" role="status" aria-live="polite">Checking owner setup…</div>
         <div id="integration-auth" class="integration-auth" hidden>
           <label for="integration-owner-key">Owner key</label>
@@ -602,9 +591,9 @@
         </div>
         <div id="integration-private" class="integration-private" hidden>
           <h3>Register a demo application</h3>
-          <p>Use a fictional name such as “Student Portal”. The connection key appears once. Connected applications are shown separately below with their own activity, alerts, and risk scores.</p>
+          <p>Give your demo application a fictional name. The connection key appears once. Connected applications are shown separately below with their own activity, alerts, and risk scores.</p>
           <form id="integration-form" class="integration-form">
-            <label for="integration-name">Application name<input id="integration-name" type="text" maxlength="60" placeholder="Student Portal" required /></label>
+            <label for="integration-name">Application name<input id="integration-name" type="text" maxlength="60" placeholder="My demo application" required /></label>
             <button type="submit">Register app</button>
           </form>
           <div id="integration-created" class="integration-created" hidden>
@@ -714,8 +703,6 @@
       const maxFileBytes = 10 * 1024 * 1024;
       const maxAccountBytes = 50 * 1024 * 1024;
       const integrationStatus = document.querySelector('#integration-status');
-      const connectorGuide = document.querySelector('#connector-guide');
-      const studentPortalLink = document.querySelector('#student-portal-link');
       const integrationAuth = document.querySelector('#integration-auth');
       const integrationPrivate = document.querySelector('#integration-private');
       const integrationOwnerKey = document.querySelector('#integration-owner-key');
@@ -730,17 +717,13 @@
       let selectedIntegrationAppId = null;
       let integrationRegistrationConfigured = false;
 
-      studentPortalLink.hidden = !['127.0.0.1', 'localhost'].includes(location.hostname);
-
-      function selectedStudentConnector() {
-        return document.querySelector('input[name="student-connector"]:checked')?.value || null;
+      function selectedIntegrationConnector() {
+        return document.querySelector('input[name="integration-connector"]:checked')?.value || null;
       }
 
-      function updateStudentConnector() {
-        const connector = selectedStudentConnector();
+      function updateIntegrationConnector() {
+        const connector = selectedIntegrationConnector();
         const correct = connector === 'fastapi';
-        connectorGuide.hidden = !correct;
-        integrationAuth.hidden = !correct || !integrationRegistrationConfigured;
         if (!correct) {
           integrationAdminKey = null;
           integrationOwnerKey.value = '';
@@ -749,17 +732,18 @@
           integrationCreated.hidden = true;
           integrationPrivate.hidden = true;
         }
+        integrationAuth.hidden = !integrationRegistrationConfigured || Boolean(integrationAdminKey);
         if (connector && !correct) {
-          showIntegrationStatus('Wrong connector for Student Portal. Select Python — FastAPI to unlock this connection.', true);
+          showIntegrationStatus('Wrong connector.', true);
         } else if (correct) {
           showIntegrationStatus(integrationRegistrationConfigured
-            ? 'Correct connector selected. Enter the private owner key to unlock the Student Portal view.'
-            : 'Correct connector selected. Owner setup is needed on this server.');
+            ? 'Enter the private owner key to unlock your integrations.'
+            : 'Owner setup is needed on this server.');
         }
       }
 
-      document.querySelectorAll('input[name="student-connector"]').forEach((option) => {
-        option.addEventListener('change', updateStudentConnector);
+      document.querySelectorAll('input[name="integration-connector"]').forEach((option) => {
+        option.addEventListener('change', updateIntegrationConnector);
       });
 
       function showIntegrationStatus(message, error = false) {
@@ -870,12 +854,10 @@
           if (!response.ok) throw new Error('unavailable');
           const data = await response.json();
           integrationRegistrationConfigured = Boolean(data.registrationConfigured);
-          integrationAuth.hidden = !integrationRegistrationConfigured || selectedStudentConnector() !== 'fastapi';
+          integrationAuth.hidden = !integrationRegistrationConfigured;
           showIntegrationStatus(!integrationRegistrationConfigured
             ? 'Owner setup is needed. Set CHAIN_GUARD_ADMIN_KEY on the server to enable protected registration.'
-            : selectedStudentConnector() === 'fastapi'
-              ? 'Correct connector selected. Enter the private owner key to unlock the Student Portal view.'
-              : 'Select Python — FastAPI to connect the Student Portal.');
+            : 'Enter the private owner key to unlock your integrations.');
         } catch {
           showIntegrationStatus('Could not check integration setup. Try refreshing the page.', true);
         }
@@ -896,15 +878,15 @@
       }
 
       document.querySelector('#integration-unlock').addEventListener('click', async () => {
-        if (selectedStudentConnector() !== 'fastapi') {
-          return showIntegrationStatus('Wrong connector for Student Portal. Select Python — FastAPI first.', true);
+        if (selectedIntegrationConnector() !== 'fastapi') {
+          return showIntegrationStatus('Wrong connector.', true);
         }
         const candidate = integrationOwnerKey.value;
         if (!candidate) return showIntegrationStatus('Enter the owner key first.', true);
         try {
           const response = await fetch('/api/integrations/overview', { headers: { 'X-Chain-Guard-Admin-Key': candidate } });
           const data = await response.json();
-          if (selectedStudentConnector() !== 'fastapi') return;
+          if (selectedIntegrationConnector() !== 'fastapi') return;
           if (!response.ok) return showIntegrationStatus(data.error || 'Owner key not accepted.', true);
           integrationAdminKey = candidate;
           integrationOwnerKey.value = '';
@@ -920,7 +902,7 @@
 
       document.querySelector('#integration-form').addEventListener('submit', async (event) => {
         event.preventDefault();
-        if (!integrationAdminKey || selectedStudentConnector() !== 'fastapi') return;
+        if (!integrationAdminKey || selectedIntegrationConnector() !== 'fastapi') return;
         const name = document.querySelector('#integration-name').value.trim();
         try {
           const response = await fetch('/api/integrations/apps', {
