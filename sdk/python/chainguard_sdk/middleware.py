@@ -27,7 +27,7 @@ class ChainGuardMiddleware:
     def __init__(
         self, app, *, server_url, app_id, app_key, identity_secret,
         login_paths=("/login",), user_list_paths=(), product_list_paths=(),
-        record_pattern=None, timeout=0.75,
+        record_pattern=None, timeout=0.75, on_event_result=None,
     ):
         if len(identity_secret) < 32:
             raise ValueError("identity_secret must be at least 32 characters")
@@ -50,6 +50,7 @@ class ChainGuardMiddleware:
         self.product_list_paths = frozenset(product_list_paths)
         self.record_pattern = re.compile(record_pattern) if record_pattern else None
         self.timeout = float(timeout)
+        self.on_event_result = on_event_result
         if self.timeout <= 0:
             raise ValueError("timeout must be positive")
 
@@ -71,7 +72,14 @@ class ChainGuardMiddleware:
         try:
             event = self._event(scope, status)
             if event:
-                await asyncio.to_thread(self._post_event, event)
+                try:
+                    result = await asyncio.to_thread(self._post_event, event)
+                except Exception:
+                    if self.on_event_result:
+                        self.on_event_result(event, None)
+                    return
+                if self.on_event_result:
+                    self.on_event_result(event, result)
         except Exception:
             # Observation is explicitly best effort, never an app outage.
             pass
@@ -137,4 +145,4 @@ class ChainGuardMiddleware:
             method="POST",
         )
         with urllib.request.urlopen(request, timeout=self.timeout) as response:
-            response.read(512)
+            return json.loads(response.read(65536))

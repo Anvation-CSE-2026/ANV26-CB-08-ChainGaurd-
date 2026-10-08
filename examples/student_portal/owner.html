@@ -4,18 +4,47 @@
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f1f6f3;color:#17352a;font:16px/1.5 system-ui,sans-serif}main{max-width:1050px;margin:40px auto;padding:28px;background:white;border:1px solid #c5dfcc;border-radius:18px}h1{margin:8px 0}label{display:block;font-weight:700;margin:20px 0 8px}input{width:100%;padding:14px;border:1px solid #bdd3c4;border-radius:10px;font:inherit}button{padding:14px;border:1px solid #b8dbc4;background:#edf8f0;color:#17603b;border-radius:10px;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:wait}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:24px}#result{padding:18px;background:#eef8f1;border-radius:12px;margin-top:20px}a{color:#118450}p{color:#526c5c}@media(max-width:600px){main{margin:12px}.grid{grid-template-columns:1fr}}
 </style></head>
-<body><main><a href="/">← Student portal</a><p>PRIVATE OWNER AREA</p><h1>Security test lab</h1><p>Only the owner can run these fictional tests. Students do not need this key. Tests run in the Python backend through the portal's actual API routes.</p>
+<body><main><a href="/">← Student portal</a><p>PRIVATE OWNER AREA</p><h1>Backend dashboard</h1><p>See actual portal requests, connector delivery, Chain Guard risk scores, and detected behaviors. Only the owner can unlock these details.</p>
 <label for="key">Portal owner key</label><input id="key" type="password" autocomplete="off" placeholder="Enter your private portal owner key"><p>The key stays in this tab's memory. It is not saved in browser storage.</p>
+<button id="unlock" type="button">Unlock backend dashboard</button>
+<section id="working" hidden><h2>How Chain Guard is working</h2><p>1. Portal handles the request → 2. Connector removes raw identities → 3. Chain Guard receives the event → 4. Detectors check behavior → 5. Risk score and alerts return.</p><p>This connector observes activity. It does not enforce blocks on the student portal.</p><button id="refresh" type="button">Refresh activity</button><p id="activity-status" role="status"></p><div id="activity"></div><p>Latest 100 connector attempts are held in portal memory and reset on restart. Failed delivery is shown without inventing a risk score.</p></section>
+<h2>Security test lab</h2>
 <div class="grid" id="tests">
 <button data-scenario="stuffing">Failed logins</button><button data-scenario="enumeration">Sequential records</button><button data-scenario="scraping">Fast listings</button><button data-scenario="token">Token overuse</button><button data-scenario="bot">Rapid automation</button><button data-scenario="combined">Run combined test →</button>
 </div><div id="result" role="status" aria-live="polite">Enter the owner key, then choose a test.</div><p>Only synthetic data is used. Connector delivery is best effort; completion does not guarantee that Chain Guard received every event.</p><a id="dashboard" hidden>Open Chain Guard Integrations →</a></main>
 <script>
 const result=document.getElementById('result');
+let ownerKey='';
+const working=document.getElementById('working');
+const testButtons=document.querySelectorAll('#tests button');
+testButtons.forEach(b=>b.disabled=true);
+async function refreshActivity(){
+ const response=await fetch('/api/owner/activity',{headers:{'X-Portal-Owner-Key':ownerKey}});
+ const data=await response.json();if(!response.ok)throw Error(data.detail||'Could not load backend activity');
+ const list=document.getElementById('activity');list.replaceChildren();
+ document.getElementById('activity-status').textContent=`${data.connectorConfigured?'Connector configured':'Connector not configured'} · ${data.events.length} recent attempts · Updated ${new Date().toLocaleTimeString()}`;
+ if(!data.events.length){const p=document.createElement('p');p.textContent='No connector attempts yet. Use the student portal or run an owner test.';list.append(p);}
+ for(const event of data.events){
+  const details=document.createElement('details');details.style.cssText='padding:14px;border:1px solid #c5dfcc;border-radius:10px;margin-top:10px';
+  const summary=document.createElement('summary');summary.textContent=`${event.method} · ${event.activity} · HTTP ${event.statusCode} · ${event.delivered?'Received by Chain Guard':'Delivery not confirmed'} · ${event.risk?event.risk.score+'/100':'Risk unavailable'}`;details.append(summary);
+  const line=document.createElement('p');line.textContent=`Observed ${new Date(event.timestamp).toLocaleString()}. ${event.risk?'Risk level: '+event.risk.level+'.':'No scoring response received.'}`;details.append(line);
+  for(const factor of event.risk?.factors||[]){const p=document.createElement('p');p.textContent=`Signal: ${factor.label||factor.type||factor.reason||factor.signal||'Behavior signal'} · +${factor.points} points`;details.append(p);}
+  const alerts=document.createElement('p');alerts.textContent=event.detections.length?'New detections: '+event.detections.map(d=>`${d.type} (${d.severity})`).join(', '):'No new detection alert returned for this request.';details.append(alerts);list.append(details);
+ }
+}
+document.getElementById('unlock').addEventListener('click',async()=>{
+ ownerKey=document.getElementById('key').value;
+ try{await refreshActivity();working.hidden=false;testButtons.forEach(b=>b.disabled=false);result.textContent='Owner access verified. Choose a test or review live activity.';document.getElementById('key').value='';}
+ catch(error){ownerKey='';working.hidden=true;testButtons.forEach(b=>b.disabled=true);result.textContent=error.message;}
+});
+document.getElementById('key').addEventListener('keydown',event=>{if(event.key==='Enter')document.getElementById('unlock').click();});
+document.getElementById('refresh').addEventListener('click',()=>refreshActivity().catch(error=>{document.getElementById('activity-status').textContent=error.message;}));
+setInterval(()=>{if(ownerKey&&!working.hidden)refreshActivity().catch(error=>{document.getElementById('activity-status').textContent=error.message;});},5000);
 document.getElementById('tests').addEventListener('click',async event=>{
  const button=event.target.closest('button[data-scenario]');if(!button)return;
- const key=document.getElementById('key').value;if(!key){result.textContent='Enter your portal owner key first.';return;}
+ const key=ownerKey;if(!key){result.textContent='Unlock the backend dashboard first.';return;}
  const buttons=document.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);result.textContent='Running the fictional test in the portal backend…';
- try{const response=await fetch('/api/owner/simulations',{method:'POST',headers:{'Content-Type':'application/json','X-Portal-Owner-Key':key},body:JSON.stringify({scenario:button.dataset.scenario})});const data=await response.json();if(!response.ok)throw Error(data.detail||'Test failed');result.textContent=`${data.requestsSent} actual portal requests completed. ${data.message}`;}catch(error){result.textContent=error.message;}finally{buttons.forEach(b=>b.disabled=false);}
+ try{const response=await fetch('/api/owner/simulations',{method:'POST',headers:{'Content-Type':'application/json','X-Portal-Owner-Key':key},body:JSON.stringify({scenario:button.dataset.scenario})});const data=await response.json();if(!response.ok)throw Error(data.detail||'Test failed');result.textContent=`${data.requestsSent} actual portal requests completed. ${data.message}`;await refreshActivity();}catch(error){result.textContent=error.message;}finally{buttons.forEach(b=>b.disabled=false);}
 });
 fetch('/api/status').then(r=>r.json()).then(data=>{if(data.dashboardUrl){const link=document.getElementById('dashboard');link.href=data.dashboardUrl;link.hidden=false;}}).catch(()=>{});
 </script></body></html>

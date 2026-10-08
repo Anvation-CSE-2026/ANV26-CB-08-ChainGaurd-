@@ -17,7 +17,7 @@ const portalPort = Number(process.env.CHAIN_GUARD_PORTAL_PORT || 8000);
 const host = '127.0.0.1';
 const chainUrl = `http://${host}:${chainPort}`;
 const portalUrl = `http://${host}:${portalPort}`;
-const ownerKey = `local_demo_${randomBytes(32).toString('base64url')}`;
+const ownerKey = process.env.CHAIN_GUARD_LOCAL_OWNER_KEY || `local_demo_${randomBytes(32).toString('base64url')}`;
 let chainProcess;
 let portalProcess;
 let stopping = false;

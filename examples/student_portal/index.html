@@ -33,6 +33,8 @@
     .dashboard-link { border: 1px solid #ffffff80; border-radius: 10px; padding: 9px 13px; color: #fff; text-decoration: none; font-size: .78rem; font-weight: 700; }
     .dashboard-link:hover { background: #ffffff21; }
     .dashboard-link[hidden] { display: none; }
+    .backend-icon { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid #80dfad; border-radius: 11px; color: white; text-decoration: none; }
+    .backend-icon:hover { background: #ffffff21; }
     .layout { display: grid; grid-template-columns: minmax(285px, 345px) minmax(0, 1fr); gap: 18px; align-items: stretch; margin-top: 18px; }
     .content-stack { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(250px, .85fr); gap: 18px; align-items: stretch; }
     .card { background: #fff; border: 1px solid #d9e9de; border-radius: 18px; box-shadow: 0 8px 26px rgba(18, 69, 42, .05); padding: 25px; }
@@ -100,7 +102,7 @@
 <body>
   <header class="site-header">
     <div class="brand"><span class="brand-mark" aria-hidden="true">N</span><span><span class="brand-name">Northstar</span><span class="brand-caption">STUDENT PORTAL</span></span></div>
-    <div class="header-context"><span>Connected to Chain Guard</span><span class="header-divider" aria-hidden="true"></span><span class="header-tag">FICTIONAL DEMO</span></div>
+    <div class="header-context"><span>Connected to Chain Guard</span><span class="header-divider" aria-hidden="true"></span><span class="header-tag">FICTIONAL DEMO</span><a class="backend-icon" href="/owner" aria-label="Open backend dashboard — owner only" title="Backend dashboard · Owner only"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M11 6.5h6M11 17.5h6"/></svg></a></div>
   </header>
   <main>
     <section class="intro" aria-labelledby="portal-title">

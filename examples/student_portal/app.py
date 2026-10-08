@@ -4,6 +4,8 @@ import os
 import secrets
 import asyncio
 import httpx
+from collections import deque
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -53,6 +55,23 @@ def create_app(config=None):
     sessions = {}
     owner_key = config.get("PORTAL_OWNER_KEY", "")
     simulation_lock = asyncio.Lock()
+    processing_history = deque(maxlen=100)
+
+    def capture_processing(event, result):
+        processing_history.appendleft({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "activity": event["activity"], "method": event["method"],
+            "statusCode": event["statusCode"],
+            "delivered": bool(result and result.get("accepted")),
+            "risk": result.get("risk") if result else None,
+            "detections": result.get("detections", []) if result else [],
+        })
+
+    def require_owner(key):
+        if not owner_key:
+            raise HTTPException(503, "Owner tests are disabled. Configure PORTAL_OWNER_KEY on the portal server.")
+        if not secrets.compare_digest(key.encode(), owner_key.encode()):
+            raise HTTPException(403, "A valid portal owner key is required.")
     keys = (
         "CHAIN_GUARD_URL", "CHAIN_GUARD_APP_ID", "CHAIN_GUARD_APP_KEY",
         "CHAIN_GUARD_IDENTITY_SECRET",
@@ -73,6 +92,7 @@ def create_app(config=None):
             user_list_paths=("/api/students",),
             product_list_paths=("/api/courses",),
             record_pattern=r"/api/students/(?P<record_id>\d+)",
+            on_event_result=capture_processing,
         )
 
     def current_student(authorization):
@@ -91,12 +111,15 @@ def create_app(config=None):
     def owner_page():
         return FileResponse(Path(__file__).with_name("owner.html"))
 
+    @app.get("/api/owner/activity")
+    def owner_activity(x_portal_owner_key: str = Header(default="")):
+        require_owner(x_portal_owner_key)
+        return {"connectorConfigured": connected, "events": list(processing_history),
+                "mode": "observe-only", "retention": "Latest 100 connector attempts; resets on portal restart."}
+
     @app.post("/api/owner/simulations")
     async def simulate(payload: SimulationRequest, x_portal_owner_key: str = Header(default="")):
-        if not owner_key:
-            raise HTTPException(503, "Owner tests are disabled. Configure PORTAL_OWNER_KEY on the portal server.")
-        if not secrets.compare_digest(x_portal_owner_key.encode(), owner_key.encode()):
-            raise HTTPException(403, "A valid portal owner key is required.")
+        require_owner(x_portal_owner_key)
         kinds = ("stuffing", "enumeration", "scraping", "token", "bot")
         if payload.scenario not in (*kinds, "combined"):
             raise HTTPException(400, "Unknown fictional scenario.")

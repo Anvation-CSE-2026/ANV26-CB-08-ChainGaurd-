@@ -56,6 +56,11 @@ Chain Guard on `http://127.0.0.1:3100/` and this portal on
 local-only keys, and prints the owner key for the Chain Guard Integrations
 screen. Keep that terminal open. Press Ctrl+C to stop both processes.
 The same generated local-only key opens tests at `http://127.0.0.1:8000/owner`.
+The top-right server icon opens this backend dashboard. Unlock it to view
+the last 100 connector attempts, confirmed delivery, actual scoring responses,
+new detections, and signal points. These details are not available without
+the portal owner key. The connector is observe-only and does not block portal
+requests. History resets on portal restart; it is not database storage.
 
 The launcher looks for the Python environment used in this workspace at
 `work/fastapi-verify`, then `.venv`. If you installed the dependencies
