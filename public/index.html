@@ -337,7 +337,8 @@
       .lab-result p { margin: 4px 0 0; font-size: .76rem; }
       .lab-result a { display: inline-block; margin-top: 7px; color: #84ddfa; font-size: .76rem; font-weight: 800; }
       .login-intro { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-      .login-panel form, .login-panel .notice, .login-panel .credentials, .login-panel pre, .login-panel .demo-action, .login-panel .challenge-box { max-width: 530px; }
+      .login-content { width: min(100%, 660px); margin: 0 auto; }
+      .login-panel form, .login-panel .notice, .login-panel .credentials, .login-panel pre, .login-panel .demo-action, .login-panel .challenge-box { max-width: 100%; }
       .login-panel .notice { margin: 16px 0; }
       .login-panel #open-record { width: auto; }
       .monitor { padding-top: 27px; }
@@ -534,6 +535,7 @@
         </section>
 
       <section id="login" class="login-panel" aria-labelledby="login-title">
+      <div class="login-content">
       <div class="eyebrow">Chain Guard · Step 1</div>
       <div class="login-intro">
         <div><h2 id="login-title">Demo API login</h2><p>Sign in to open browser-only demo file storage and fictional account records.</p></div>
@@ -557,6 +559,7 @@
         <input id="challenge-answer" type="number" inputmode="numeric" />
         <button id="verify-button" type="button">Verify and retry</button>
         <p id="challenge-status" class="challenge-status" aria-live="polite"></p>
+      </div>
       </div>
       </section>
 
