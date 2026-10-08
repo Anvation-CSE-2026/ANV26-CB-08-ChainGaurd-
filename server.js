@@ -1,0 +1,232 @@
+const http = require('node:http');
+const { readFile } = require('node:fs/promises');
+const path = require('node:path');
+const { randomUUID } = require('node:crypto');
+const {
+  fingerprint,
+  getBearerToken,
+  startRequestObservation,
+  completeRequestObservation,
+  getRecentEvents,
+  getSummary
+} = require('./request-monitor');
+const { detectAbuse, getDetections, getDetectionSummary } = require('./detection-engine');
+const { scoreRisk, getRiskSummary } = require('./risk-engine');
+const { decideResponse, verifyChallenge, getResponseSummary, getResponseEvents } = require('./response-engine');
+const { SCENARIOS, runLabScenario } = require('./lab-runner');
+
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '127.0.0.1';
+
+// Every record below is fictional and exists only for this security demo.
+const demoUsers = [
+  { id: '1001', name: 'Avery Patel', email: 'avery@demo.chain-guard.test', accountNumber: 'CG-DEMO-1001', balance: 4820.5, role: 'customer' },
+  { id: '1002', name: 'Jordan Lee', email: 'jordan@demo.chain-guard.test', accountNumber: 'CG-DEMO-1002', balance: 12950.0, role: 'customer' },
+  { id: '1003', name: 'Morgan Silva', email: 'morgan@demo.chain-guard.test', accountNumber: 'CG-DEMO-1003', balance: 760.25, role: 'customer' },
+  { id: '1004', name: 'Riley Chen', email: 'riley@demo.chain-guard.test', accountNumber: 'CG-DEMO-1004', balance: 3140.75, role: 'customer' }
+];
+
+const credentials = new Map([
+  ['avery@demo.chain-guard.test', { password: 'DemoPass!123', userId: '1001' }],
+  ['jordan@demo.chain-guard.test', { password: 'DemoPass!123', userId: '1002' }],
+  ['morgan@demo.chain-guard.test', { password: 'DemoPass!123', userId: '1003' }],
+  ['riley@demo.chain-guard.test', { password: 'DemoPass!123', userId: '1004' }]
+]);
+
+const products = [
+  { id: 'p-101', name: 'Chain Guard Starter', price: 0, category: 'demo' },
+  { id: 'p-102', name: 'Chain Guard Monitor', price: 49, category: 'demo' },
+  { id: 'p-103', name: 'Chain Guard Response', price: 99, category: 'demo' }
+];
+
+const sessions = new Map();
+let labRunning = false;
+
+function sendJson(response, status, body, extraHeaders = {}) {
+  response.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    ...extraHeaders
+  });
+  response.end(JSON.stringify(body, null, 2));
+}
+
+function readJson(request) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    request.on('data', (chunk) => {
+      body += chunk;
+      if (body.length > 1_000_000) request.destroy();
+    });
+    request.on('end', () => {
+      try {
+        resolve(body ? JSON.parse(body) : {});
+      } catch {
+        reject(new Error('Invalid JSON body'));
+      }
+    });
+  });
+}
+
+function getAuthenticatedUser(request) {
+  const token = getBearerToken(request);
+  const userId = token ? sessions.get(token) : null;
+  return userId ? demoUsers.find((user) => user.id === userId) : null;
+}
+
+async function servePage(response) {
+  const page = await readFile(path.join(__dirname, 'public', 'index.html'));
+  response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+  response.end(page);
+}
+
+const server = http.createServer(async (request, response) => {
+  const url = new URL(request.url, `http://${request.headers.host}`);
+  const observation = startRequestObservation(request, url);
+  response.on('finish', () => {
+    const event = completeRequestObservation(observation, response);
+    const recentEvents = getRecentEvents(500);
+    event.risk = scoreRisk(event, recentEvents);
+    const detections = detectAbuse(event, recentEvents);
+    if (detections.length) event.detections = detections.map((detection) => detection.type);
+  });
+
+  try {
+    if (request.method === 'GET' && url.pathname === '/') return servePage(response);
+
+    if (request.method === 'GET' && url.pathname === '/api/health') {
+      return sendJson(response, 200, { status: 'ok', service: 'chain-guard-demo-api' });
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/verify') {
+      const { challengeId, answer } = await readJson(request);
+      const verification = verifyChallenge(observation, challengeId, answer);
+      observation.outcome = verification.ok ? 'verification-passed' : 'verification-failed';
+      return verification.ok
+        ? sendJson(response, 200, { message: 'Demo verification passed.', verificationToken: verification.token, expiresInSeconds: verification.expiresInSeconds })
+        : sendJson(response, 400, { error: verification.error });
+    }
+
+    const labMatch = url.pathname.match(/^\/api\/lab\/run\/([a-z-]+)$/);
+    if (request.method === 'POST' && labMatch) {
+      if (!SCENARIOS.has(labMatch[1])) return sendJson(response, 404, { error: 'Unknown lab scenario.' });
+      if (labRunning) return sendJson(response, 409, { error: 'A lab scenario is already running.' });
+      labRunning = true;
+      try {
+        return sendJson(response, 200, await runLabScenario(labMatch[1], PORT));
+      } finally {
+        labRunning = false;
+      }
+    }
+
+    if (/^\/api\/(login|products|users)(\/|$)/.test(url.pathname)) {
+      const provisional = { ...observation, statusCode: 0 };
+      const decisionRisk = scoreRisk(provisional, [provisional, ...getRecentEvents(500)]);
+      const decision = decideResponse(request, observation, decisionRisk);
+      observation.security = {
+        action: decision.action,
+        reason: decision.reason,
+        decisionScore: decisionRisk.score,
+        alertAdmin: Boolean(decision.alertAdmin)
+      };
+      if (decision.action !== 'allow') {
+        if (decision.action === 'block') {
+          const token = getBearerToken(request);
+          observation.security.revokedToken = Boolean(token && sessions.delete(token));
+        }
+        const headers = decision.retryAfterSeconds ? { 'Retry-After': String(decision.retryAfterSeconds) } : {};
+        return sendJson(response, decision.status, {
+          error: decision.reason,
+          action: decision.action,
+          riskScore: decisionRisk.score,
+          ...(decision.challenge ? { challenge: decision.challenge, verificationUrl: '/api/verify' } : {}),
+          ...(decision.retryAfterSeconds ? { retryAfterSeconds: decision.retryAfterSeconds } : {})
+        }, headers);
+      }
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/login') {
+      const { email = '', password = '' } = await readJson(request);
+      const account = credentials.get(String(email).toLowerCase());
+      observation.accountFingerprint = fingerprint(String(email).toLowerCase());
+
+      if (!account || account.password !== password) {
+        observation.outcome = 'login-failed';
+        return sendJson(response, 401, { error: 'Invalid demo email or password.' });
+      }
+
+      const token = `demo_${randomUUID()}`;
+      sessions.set(token, account.userId);
+      const user = demoUsers.find((item) => item.id === account.userId);
+      observation.outcome = 'login-approved';
+      observation.userId = user.id;
+      observation.tokenFingerprint = fingerprint(token);
+      return sendJson(response, 200, { token, user, message: 'Demo login successful.' });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/products') {
+      return sendJson(response, 200, { products });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/users') {
+      const user = getAuthenticatedUser(request);
+      if (!user) return sendJson(response, 401, { error: 'A demo bearer token is required.' });
+      observation.userId = user.id;
+      observation.outcome = 'authenticated-request';
+      return sendJson(response, 200, { users: demoUsers });
+    }
+
+    const userMatch = url.pathname.match(/^\/api\/users\/([a-zA-Z0-9-]+)$/);
+    if (request.method === 'GET' && userMatch) {
+      const user = getAuthenticatedUser(request);
+      if (!user) return sendJson(response, 401, { error: 'A demo bearer token is required.' });
+      observation.userId = user.id;
+      observation.outcome = 'authenticated-request';
+      const record = demoUsers.find((item) => item.id === userMatch[1]);
+      return record
+        ? sendJson(response, 200, { user: record })
+        : sendJson(response, 404, { error: 'Demo user not found.' });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/monitor/summary') {
+      return sendJson(response, 200, { summary: getSummary() });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/monitor/requests') {
+      return sendJson(response, 200, { events: getRecentEvents(url.searchParams.get('limit')) });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/monitor/detections') {
+      return sendJson(response, 200, {
+        summary: getDetectionSummary(),
+        riskSummary: getRiskSummary(getRecentEvents(500)),
+        detections: getDetections(url.searchParams.get('limit'))
+      });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/monitor/risks') {
+      const scored = getRecentEvents(500)
+        .filter((event) => /^\/api\/(login|products|users)(\/|$)/.test(event.endpoint))
+        .slice(0, Math.min(Math.max(Number(url.searchParams.get('limit')) || 20, 1), 100))
+        .map((event) => ({ timestamp: event.timestamp, ip: event.ip, endpoint: event.endpoint, risk: event.risk }));
+      return sendJson(response, 200, { summary: getRiskSummary(getRecentEvents(500)), requests: scored });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/monitor/responses') {
+      const events = getRecentEvents(500);
+      return sendJson(response, 200, {
+        summary: getResponseSummary(events),
+        responses: getResponseEvents(events, url.searchParams.get('limit'))
+      });
+    }
+
+    return sendJson(response, 404, { error: 'Route not found.' });
+  } catch (error) {
+    const status = error.message === 'Invalid JSON body' ? 400 : 500;
+    return sendJson(response, status, { error: status === 400 ? error.message : 'Unexpected server error.' });
+  }
+});
+
+server.listen(PORT, HOST, () => {
+  console.log(`Chain Guard demo is running on ${HOST}:${PORT}`);
+});

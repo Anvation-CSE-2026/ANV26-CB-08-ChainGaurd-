@@ -1,0 +1,109 @@
+const http = require('node:http');
+const { getRecentEvents, labRequestSecret } = require('./request-monitor');
+const { getDetections } = require('./detection-engine');
+
+const SCENARIOS = new Set([
+  'credential-stuffing',
+  'enumeration',
+  'scraping',
+  'token-api-key-misuse',
+  'bot-automation-abuse',
+  'combined-risk'
+]);
+
+let runNumber = 0;
+
+function callApi(port, method, route, { ip, token, body, bot = false } = {}) {
+  return new Promise((resolve, reject) => {
+    const payload = body ? JSON.stringify(body) : null;
+    const request = http.request({
+      hostname: '127.0.0.1',
+      port,
+      path: route,
+      method,
+      headers: {
+        'X-Chain-Guard-Lab-Secret': labRequestSecret,
+        'X-Demo-Client-IP': ip,
+        'User-Agent': bot ? 'ChainGuardLabBot/1.0' : 'ChainGuardLabBrowser/1.0',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {})
+      }
+    }, (response) => {
+      let text = '';
+      response.on('data', (chunk) => { text += chunk; });
+      response.on('end', () => {
+        try {
+          resolve({ status: response.statusCode, data: JSON.parse(text) });
+        } catch {
+          reject(new Error('The demo API returned an unreadable response.'));
+        }
+      });
+    });
+    request.on('error', reject);
+    request.setTimeout(10_000, () => request.destroy(new Error('The demo API request timed out.')));
+    if (payload) request.write(payload);
+    request.end();
+  });
+}
+
+async function runLabScenario(type, port) {
+  if (!SCENARIOS.has(type)) throw new Error('Unknown lab scenario.');
+  runNumber += 1;
+  const suffix = (runNumber % 250) + 1;
+  const ip = `198.51.100.${suffix}`;
+  const secondIp = `203.0.113.${suffix}`;
+  const beforeEvents = new Set(getRecentEvents(500).map((event) => event.id));
+  const beforeAlerts = new Set(getDetections(200).map((alert) => alert.id));
+  const requests = [];
+  const send = async (method, route, options = {}) => {
+    const response = await callApi(port, method, route, { ip, ...options });
+    requests.push(response.status);
+    return response;
+  };
+  const login = async () => {
+    const response = await send('POST', '/api/login', {
+      body: { email: 'avery@demo.chain-guard.test', password: 'DemoPass!123' }
+    });
+    if (!response.data.token) throw new Error('Demo login failed during the lab run.');
+    return response.data.token;
+  };
+
+  if (type === 'credential-stuffing') {
+    for (let index = 1; index <= 5; index += 1) {
+      await send('POST', '/api/login', {
+        body: { email: `lab-target-${index}@demo.chain-guard.test`, password: 'wrong-demo-password' }
+      });
+    }
+  } else if (type === 'enumeration') {
+    const token = await login();
+    for (let id = 1001; id <= 1004; id += 1) await send('GET', `/api/users/${id}`, { token });
+  } else if (type === 'scraping') {
+    for (let index = 0; index < 20; index += 1) await send('GET', '/api/products');
+  } else if (type === 'token-api-key-misuse') {
+    const token = await login();
+    await send('GET', '/api/users/1001', { token });
+    await send('GET', '/api/users/1002', { token, ip: secondIp });
+  } else if (type === 'bot-automation-abuse') {
+    for (let index = 0; index < 12; index += 1) await send('GET', '/api/products', { bot: true });
+  } else if (type === 'combined-risk') {
+    const token = await login();
+    await send('GET', '/api/users/1001', { token, ip: secondIp });
+    for (let index = 0; index < 20; index += 1) await send('GET', '/api/products', { token, bot: true });
+  }
+
+  const newEvents = getRecentEvents(500).filter((event) => !beforeEvents.has(event.id));
+  const newAlerts = getDetections(200).filter((alert) => !beforeAlerts.has(alert.id));
+  const actions = [...new Set(newEvents.map((event) => event.security?.action).filter((action) => action && action !== 'allow'))];
+  return {
+    scenario: type,
+    demoIp: ip,
+    requestsSent: requests.length,
+    statusCodes: [...new Set(requests)],
+    detectedTypes: [...new Set(newAlerts.map((alert) => alert.type))],
+    highestRiskScore: newEvents.reduce((highest, event) => Math.max(highest, event.risk?.score || 0), 0),
+    actions,
+    alertsCreated: newAlerts.length
+  };
+}
+
+module.exports = { SCENARIOS, runLabScenario };
