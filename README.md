@@ -40,7 +40,13 @@ The app ID comes from the authenticated header, never from the JSON body. The ev
 
 ## FastAPI connector (connected-app step 5)
 
-The first installable prototype connector is in `sdk/python/`. A fictional FastAPI app can add `ChainGuardMiddleware` to observe completed requests and automatically submit safe, pseudonymous events to the API above. Its setup, route mapping, privacy limits, and sample code are in `sdk/python/README.md`. Delivery is best-effort and never turns a Chain Guard outage into a host-app failure. The separate student-portal test app and protected multi-app dashboard are still future steps.
+The first installable prototype connector is in `sdk/python/`. A fictional FastAPI app can add `ChainGuardMiddleware` to observe completed requests and automatically submit safe, pseudonymous events to the API above. Its setup, route mapping, privacy limits, and sample code are in `sdk/python/README.md`. Delivery is best-effort and never turns a Chain Guard outage into a host-app failure. A separate test app is described next; the protected multi-app dashboard is still a future step.
+
+## Independent test application (connected-app step 6)
+
+`examples/student_portal/` is a separate fictional FastAPI application with its own login page, student roster, record details, and course listing. When configured with a registered app ID and connection key, it sends completed-request events through the connector to Chain Guard. Its page includes a button to generate five failed fictional logins so the existing credential-stuffing detector can be exercised. Setup and local link (`http://127.0.0.1:8000/`) are in `examples/student_portal/README.md`.
+
+An automated end-to-end test starts the real Chain Guard API, registers this portal, performs nine portal requests, and verifies that Chain Guard recorded them and detected credential stuffing. To run it, set `CHAIN_GUARD_TEST_PYTHON` to a Python interpreter with FastAPI, httpx, and the local connector installed, then run `npm test`. The test is skipped when that optional Python environment is unavailable. The portal is not hosted on the public Render link yet; the public service still runs only the Node console. Protected per-app dashboard visibility is step 7.
 
 ## Start
 

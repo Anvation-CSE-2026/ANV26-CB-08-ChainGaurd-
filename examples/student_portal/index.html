@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Northstar Student Portal · Fictional demo</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.5 system-ui, sans-serif; background: #f3f6fb; color: #14243c; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { background: #112b49; color: #fff; padding: 18px max(24px, calc((100vw - 1140px)/2)); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { font-size: 1.2rem; font-weight: 750; letter-spacing: -.025em; }
+    .brand span { display: inline-grid; place-items: center; width: 32px; height: 32px; margin-right: 8px; border-radius: 9px; background: #55c5b0; color: #0d2946; }
+    .tag { border: 1px solid #7290ac; border-radius: 999px; padding: 5px 11px; font-size: .78rem; white-space: nowrap; }
+    main { max-width: 1140px; margin: 34px auto; padding: 0 24px 40px; }
+    .intro { display: flex; justify-content: space-between; gap: 20px; align-items: start; margin-bottom: 24px; }
+    h1 { margin: 0 0 5px; font-size: clamp(1.7rem, 3vw, 2.3rem); letter-spacing: -.04em; }
+    p { margin: 0; color: #56677c; }
+    .status { display: inline-flex; gap: 8px; align-items: center; border-radius: 999px; padding: 8px 13px; font-size: .85rem; font-weight: 650; background: #e9edf3; white-space: nowrap; }
+    .status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #8a97a8; }
+    .status.connected { background: #dcf4ea; color: #0b6047; }
+    .status.connected::before { background: #0b9568; }
+    .layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 20px; align-items: start; }
+    .card { background: #fff; border: 1px solid #dbe3ec; border-radius: 18px; box-shadow: 0 8px 26px rgba(19, 45, 72, .05); padding: 24px; }
+    .card + .card { margin-top: 20px; }
+    h2 { margin: 0 0 7px; font-size: 1.15rem; letter-spacing: -.02em; }
+    .small { font-size: .86rem; }
+    label { display: block; font-size: .84rem; font-weight: 650; margin: 20px 0 7px; }
+    input { width: 100%; border: 1px solid #c7d4e2; border-radius: 10px; background: #fff; color: #14243c; font: inherit; padding: 11px 12px; }
+    input:focus-visible, button:focus-visible { outline: 3px solid #52bcae; outline-offset: 2px; }
+    button { border: 0; border-radius: 10px; padding: 11px 14px; font: inherit; font-weight: 650; cursor: pointer; }
+    button:disabled { opacity: .55; cursor: wait; }
+    .primary { width: 100%; margin-top: 20px; background: #17698f; color: #fff; }
+    .secondary { background: #e9f2f6; color: #155c7b; }
+    .danger { background: #fff3ed; color: #aa472d; }
+    .actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+    .notice { margin-top: 16px; padding: 11px 13px; background: #f5f8fb; border-radius: 10px; color: #41566d; font-size: .85rem; }
+    .notice.error { background: #fff0ed; color: #9d342d; }
+    .rows { display: grid; gap: 9px; margin-top: 18px; }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; text-align: left; border: 1px solid #dbe3ec; background: #fff; }
+    .row:hover { border-color: #4baabb; background: #f4fbfb; }
+    .row strong { display: block; }
+    .row span { color: #617289; font-size: .82rem; }
+    .pill { padding: 4px 9px; border-radius: 999px; background: #e8f5ef; color: #177553 !important; white-space: nowrap; }
+    .record { border-left: 3px solid #30a99f; padding: 8px 0 8px 14px; margin-top: 17px; }
+    .record b { display: block; font-size: 1.1rem; }
+    .course { padding: 10px 0; border-bottom: 1px solid #edf1f5; }
+    .course:last-child { border-bottom: 0; }
+    .course code { color: #17698f; font-weight: 700; }
+    .foot { margin-top: 24px; font-size: .83rem; }
+    @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } .intro { flex-direction: column; } header { padding: 16px 24px; } }
+  </style>
+</head>
+<body>
+  <header><div class="brand"><span aria-hidden="true">N</span> Northstar Student Portal</div><div class="tag">Fictional test application</div></header>
+  <main>
+    <div class="intro"><div><h1>Student workspace</h1><p>A separate example application connected to Chain Guard for security testing.</p></div><div id="connection" class="status" role="status">Checking connection</div></div>
+    <div class="layout">
+      <aside>
+        <section class="card" aria-labelledby="login-title">
+          <h2 id="login-title">Demo sign in</h2><p class="small">Use a fictional account only.</p>
+          <form id="login-form">
+            <label for="username">Student ID</label><input id="username" autocomplete="username" value="student1001" required>
+            <label for="password">Demo password</label><input id="password" type="password" autocomplete="current-password" value="PortalPass!123" required>
+            <button class="primary" type="submit">Sign in</button>
+          </form>
+          <div id="login-message" class="notice" role="status">Try student1001 with PortalPass!123.</div>
+        </section>
+        <section class="card" aria-labelledby="test-title">
+          <h2 id="test-title">Security test</h2><p class="small">Send five failed sign-ins using fictional student IDs. Chain Guard should count these under this portal's integration.</p>
+          <div class="actions"><button id="test-logins" class="danger" type="button">Send five failed demo logins</button></div>
+          <div id="test-message" class="notice" role="status">This test uses made-up accounts and wrong demo passwords.</div>
+        </section>
+      </aside>
+      <div>
+        <section class="card" aria-labelledby="roster-title">
+          <h2 id="roster-title">Student roster</h2><p class="small">Sign in to view fictional records, then select one for details.</p>
+          <div class="actions"><button id="load-roster" class="secondary" type="button">Load roster</button></div>
+          <div id="roster" class="rows"></div><div id="record" class="record" hidden></div>
+          <div id="roster-message" class="notice" role="status">No records loaded yet.</div>
+        </section>
+        <section class="card" aria-labelledby="courses-title"><h2 id="courses-title">Course catalog</h2><p class="small">Public fictional listing for request-volume tests.</p><div id="courses"></div></section>
+      </div>
+    </div>
+    <p class="foot">Prototype only · Data and accounts are fictional · Sessions reset when this portal restarts.</p>
+  </main>
+  <script>
+    let token = '';
+    const byId = id => document.getElementById(id);
+    const message = (id, text, error = false) => { const el = byId(id); el.textContent = text; el.classList.toggle('error', error); };
+
+    async function loadStatus() {
+      try {
+        const response = await fetch('/api/status');
+        const data = await response.json();
+        const badge = byId('connection');
+        badge.textContent = data.chainGuardConfigured ? 'Chain Guard connector configured' : 'Not connected to Chain Guard';
+        badge.classList.toggle('connected', data.chainGuardConfigured);
+      } catch { byId('connection').textContent = 'Connection status unavailable'; }
+    }
+
+    byId('login-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      try {
+        const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: byId('username').value, password: byId('password').value }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || 'Sign in failed');
+        token = data.token;
+        message('login-message', `Signed in as ${data.student.name}. Demo session stays in this tab only.`);
+        await loadRoster();
+      } catch (error) { token = ''; message('login-message', error.message, true); }
+    });
+
+    async function loadRoster() {
+      if (!token) return message('roster-message', 'Sign in before loading the roster.', true);
+      try {
+        const response = await fetch('/api/students', { headers: { Authorization: `Bearer ${token}` } });
+        if (!response.ok) throw new Error('Could not load demo roster');
+        const data = await response.json();
+        const roster = byId('roster'); roster.replaceChildren();
+        for (const student of data.students) {
+          const button = document.createElement('button'); button.type = 'button'; button.className = 'row';
+          const left = document.createElement('div'); const name = document.createElement('strong'); name.textContent = student.name;
+          const detail = document.createElement('span'); detail.textContent = `${student.id} · ${student.program}`;
+          left.append(name, detail); const badge = document.createElement('span'); badge.className = 'pill'; badge.textContent = student.standing;
+          button.append(left, badge); button.addEventListener('click', () => loadRecord(student.id)); roster.append(button);
+        }
+        message('roster-message', `${data.students.length} fictional records loaded.`);
+      } catch (error) { message('roster-message', error.message, true); }
+    }
+    byId('load-roster').addEventListener('click', loadRoster);
+
+    async function loadRecord(id) {
+      try {
+        const response = await fetch(`/api/students/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!response.ok) throw new Error('Could not load demo record');
+        const student = await response.json();
+        const record = byId('record'); record.replaceChildren();
+        const name = document.createElement('b'); name.textContent = student.name;
+        const detail = document.createElement('span'); detail.textContent = `Fictional ID ${student.id} · ${student.program} · ${student.standing} standing`;
+        record.append(name, detail); record.hidden = false;
+      } catch (error) { message('roster-message', error.message, true); }
+    }
+
+    async function loadCourses() {
+      try {
+        const response = await fetch('/api/courses'); const data = await response.json();
+        for (const course of data.courses) {
+          const row = document.createElement('div'); row.className = 'course';
+          const code = document.createElement('code'); code.textContent = course.code;
+          const name = document.createElement('span'); name.textContent = ` · ${course.title}`;
+          row.append(code, name); byId('courses').append(row);
+        }
+      } catch { byId('courses').textContent = 'Courses unavailable.'; }
+    }
+
+    byId('test-logins').addEventListener('click', async () => {
+      const button = byId('test-logins'); button.disabled = true;
+      message('test-message', 'Sending five fictional failed sign-ins…');
+      try {
+        let failed = 0;
+        for (let id = 1001; id <= 1005; id++) {
+          const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: `student${id}`, password: 'wrong-demo-password' }) });
+          if (response.status === 401) failed++;
+        }
+        message('test-message', `${failed} failed demo logins sent. Check the Student Portal count in Chain Guard Integrations.`);
+      } catch { message('test-message', 'The test could not finish. Try again.', true); }
+      finally { button.disabled = false; }
+    });
+
+    loadStatus(); loadCourses();
+  </script>
+</body>
+</html>
