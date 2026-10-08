@@ -65,20 +65,28 @@
     .lab-card { margin-top: 18px; }
     .lab-heading { display: flex; justify-content: space-between; align-items: start; gap: 20px; margin-bottom: 19px; }
     .lab-heading .eyebrow { color: #168450; }
-    .lab-heading p { max-width: 730px; }
-    .lab-chip { border: 1px solid #b8dbc4; border-radius: 999px; padding: 6px 11px; color: #17603b; background: #edf8f0; font-size: .73rem; font-weight: 750; white-space: nowrap; }
+    .lab-heading h2 { font-size: clamp(1.45rem, 2vw, 1.85rem); }
+    .lab-heading p { max-width: 790px; font-size: .97rem; }
+    .lab-chip { border: 1px solid #b8dbc4; border-radius: 999px; padding: 7px 12px; color: #17603b; background: #edf8f0; font-size: .79rem; font-weight: 800; white-space: nowrap; }
     .scenario-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-    .scenario { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; min-height: 102px; padding: 16px 18px; border: 1px solid #d1e5d7; border-radius: 13px; background: #f8fcf9; color: #17352a; text-align: left; transition: border-color .15s, transform .15s, background .15s; }
+    .scenario { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; min-height: 117px; padding: 18px 20px; border: 1px solid #d1e5d7; border-radius: 13px; background: #f8fcf9; color: #17352a; text-align: left; transition: border-color .15s, transform .15s, background .15s; }
     .scenario:hover { transform: translateY(-2px); border-color: #2ea66a; background: #eef8f1; }
-    .scenario strong { font-size: .92rem; }
-    .scenario span { color: #60766a; font-size: .75rem; font-weight: 450; line-height: 1.35; }
+    .scenario strong { font-size: 1.08rem; }
+    .scenario span { color: #526c5c; font-size: .88rem; font-weight: 450; line-height: 1.4; }
     .scenario.danger { border-color: #f0cfbf; background: #fff9f5; }
     .scenario.danger strong { color: #a8482f; }
     .scenario.combined { border-color: #0e7548; background: #0f7548; color: #fff; }
     .scenario.combined:hover { background: #095d39; }
     .scenario.combined span { color: #d8f7e3; }
     .lab-footer { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(220px, .7fr); gap: 12px; margin-top: 15px; }
-    .lab-footer .notice { display: flex; align-items: center; margin: 0; padding: 15px; }
+    .test-result { display: flex; align-items: center; gap: 16px; min-height: 86px; padding: 16px 18px; border: 1px solid #c5dfcc; border-radius: 12px; background: #eef8f1; color: #174b30; }
+    .test-result[data-state="success"] { border-color: #57ba7d; background: linear-gradient(100deg, #e0f5e7, #f0faf3); }
+    .test-result[data-state="running"] { border-color: #90b6d0; background: #eef6fa; color: #174b68; }
+    .test-result[data-state="error"] { border-color: #e6aaa1; background: #fff0ed; color: #9d342d; }
+    .test-result-value { flex: 0 0 auto; min-width: 58px; font-size: 1.75rem; font-weight: 850; line-height: 1; text-align: center; }
+    .test-result-title { display: block; font-size: 1.08rem; line-height: 1.3; }
+    .test-result-detail { display: block; margin-top: 4px; color: #486756; font-size: .88rem; line-height: 1.45; }
+    .test-result[data-state="error"] .test-result-detail { color: #9d342d; }
     .flow { display: flex; align-items: center; justify-content: center; padding: 14px; border-radius: 10px; background: #e6f4ea; color: #175c3b; font-size: .77rem; font-weight: 750; text-align: center; }
     .foot { margin-top: 24px; font-size: .79rem; }
     @media (max-width: 1250px) { .content-stack { grid-template-columns: 1fr; } }
@@ -126,7 +134,7 @@
         <button class="scenario" type="button" data-scenario="bot"><strong>Rapid automation</strong><span>Send twelve quick course-list requests.</span></button>
         <button class="scenario combined" type="button" data-scenario="combined"><strong>Run combined test →</strong><span>Exercise all five behaviors to build a cumulative risk score.</span></button>
       </div>
-      <div class="lab-footer"><div id="test-message" class="notice" role="status">Only made-up accounts and records are used. Run one test at a time; the combined test sends about 90 requests.</div><div class="flow">Student Portal → Connector → Chain Guard</div></div>
+      <div class="lab-footer"><div id="test-message" class="test-result" role="status" aria-live="polite" data-state="ready"><span id="test-result-value" class="test-result-value" aria-hidden="true">✓</span><div><strong id="test-result-title" class="test-result-title">Ready to test</strong><span id="test-result-detail" class="test-result-detail">Only fictional accounts and records are used. The combined test sends about 90 requests.</span></div></div><div class="flow">Student Portal → Connector → Chain Guard</div></div>
     </section>
     <p class="foot">Prototype only · Data and accounts are fictional · Sessions reset when this portal restarts.</p>
   </main>
@@ -134,6 +142,22 @@
     let token = '';
     const byId = id => document.getElementById(id);
     const message = (id, text, error = false) => { const el = byId(id); el.textContent = text; el.classList.toggle('error', error); };
+    const scenarioLabels = { stuffing: 'failed logins', enumeration: 'sequential records', scraping: 'fast listings', token: 'token overuse', bot: 'rapid automation' };
+    const scenarioTotals = { stuffing: 5, enumeration: 4, scraping: 20, token: 50, bot: 12 };
+    const scenarioResults = {
+      stuffing: ['5', 'Failed logins sent', 'Five fictional accounts were tried with wrong demo passwords.'],
+      enumeration: ['4', 'Records requested', 'Four sequential fictional student records were opened.'],
+      scraping: ['20', 'Listing requests sent', 'The public course list was requested twenty times.'],
+      token: ['50', '50 requests sent', 'One fictional session token was used for fifty requests.'],
+      bot: ['12', 'Rapid requests sent', 'Twelve quick requests were sent to the fictional course list.']
+    };
+
+    function setTestResult(value, title, detail, state) {
+      byId('test-message').dataset.state = state;
+      byId('test-result-value').textContent = value;
+      byId('test-result-title').textContent = title;
+      byId('test-result-detail').textContent = detail;
+    }
 
     async function loadStatus() {
       try {
@@ -211,11 +235,12 @@
       return token;
     }
 
-    async function sendScenario(kind) {
+    async function sendScenario(kind, onProgress = () => {}) {
       if (kind === 'stuffing') {
         for (let id = 1001; id <= 1005; id++) {
           const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: `student${id}`, password: 'wrong-demo-password' }) });
           if (response.status !== 401) throw new Error('Failed-login test did not complete as expected.');
+          onProgress(id - 1000, 5);
         }
         return '5 failed fictional logins';
       }
@@ -224,6 +249,7 @@
         for (let id = 1001; id <= 1004; id++) {
           const response = await fetch(`/api/students/${id}`, { headers: { Authorization: `Bearer ${demoToken}` } });
           if (!response.ok) throw new Error('Sequential-record test could not read the demo records.');
+          onProgress(id - 1000, 4);
         }
         return '4 sequential fictional records';
       }
@@ -231,6 +257,7 @@
         for (let request = 0; request < 20; request++) {
           const response = await fetch('/api/courses');
           if (!response.ok) throw new Error('Listing test could not finish.');
+          if ((request + 1) % 5 === 0) onProgress(request + 1, 20);
         }
         return '20 public course listings';
       }
@@ -239,12 +266,14 @@
         for (let request = 0; request < 50; request++) {
           const response = await fetch('/api/students', { headers: { Authorization: `Bearer ${demoToken}` } });
           if (!response.ok) throw new Error('Token-volume test could not finish.');
+          if ((request + 1) % 5 === 0) onProgress(request + 1, 50);
         }
         return '50 requests with one fictional token';
       }
       if (kind === 'bot') {
         const responses = await Promise.all(Array.from({ length: 12 }, () => fetch('/api/courses')));
         if (responses.some(response => !response.ok)) throw new Error('Rapid-request test could not finish.');
+        onProgress(12, 12);
         return '12 rapid course requests';
       }
       throw new Error('Unknown demo test.');
@@ -258,13 +287,19 @@
       const kind = button.dataset.scenario;
       const sequence = kind === 'combined' ? ['stuffing', 'enumeration', 'scraping', 'bot', 'token'] : [kind];
       try {
-        const completed = [];
         for (const step of sequence) {
-          message('test-message', `Running ${step.replaceAll('-', ' ')} test…`);
-          completed.push(await sendScenario(step));
+          setTestResult(`0/${scenarioTotals[step]}`, `Running ${scenarioLabels[step]}…`, 'Requests are being sent from Northstar. Keep this page open.', 'running');
+          await sendScenario(step, (done, total) => {
+            setTestResult(`${done}/${total}`, `Running ${scenarioLabels[step]}…`, `${done} of ${total} fictional requests sent.`, 'running');
+          });
         }
-        message('test-message', `${completed.join(' · ')} sent. Open Chain Guard → Integrations and refresh this app's activity.`);
-      } catch (error) { message('test-message', error.message, true); }
+        if (kind === 'combined') {
+          setTestResult('5', 'All five tests sent', 'Open Chain Guard → Integrations and refresh Northstar to review the alerts and cumulative risk.', 'success');
+        } else {
+          const [value, title, detail] = scenarioResults[kind];
+          setTestResult(value, title, `${detail} Open Chain Guard → Integrations to review the result.`, 'success');
+        }
+      } catch (error) { setTestResult('!', 'Test stopped', error.message, 'error'); }
       finally { buttons.forEach(item => { item.disabled = false; }); }
     });
 
