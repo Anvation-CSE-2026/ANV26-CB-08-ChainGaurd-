@@ -1,6 +1,6 @@
 # Chain Guard demo prototype
 
-A local-only API security console for the Chain Guard project. It contains fictional accounts, protected demo routes, five abuse detectors, cumulative risk scoring, security responses, and an interactive test lab.
+An API security console for the Chain Guard project. It contains fictional accounts, protected demo routes, five abuse detectors, cumulative risk scoring, security responses, an interactive test lab, and browser-only demo file storage.
 
 ## Start
 
@@ -11,6 +11,10 @@ npm start
 Open `http://localhost:3000` in a browser on the same computer. The server listens on `127.0.0.1` only.
 
 The sidebar opens the overview, demo login, detection lab, threat monitor, risk score, and response history. On a narrow screen, use the menu button to open it. The light/dark switch keeps its choice after refresh.
+
+## Demo file storage
+
+After signing in with a displayed demo account, the page opens **File storage**. You can add, search, download, and remove files. This feature uses the browser's IndexedDB, not the server: files stay in the same browser across refreshes and demo sign-ins, but do not sync to another device or another browser. Each fictional demo account has a separate list within that browser. The login is a shared demo credential, not private authentication; never upload real personal or sensitive files. Clearing browser data removes the stored files. Limits: 10 MB per file and 50 MB per demo account in this browser.
 
 ## Public deployment
 

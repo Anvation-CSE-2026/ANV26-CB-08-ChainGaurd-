@@ -158,6 +158,7 @@
       .side-link { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 9px 12px; border-radius: 9px; color: #aec4dd; font-size: .83rem; font-weight: 650; text-decoration: none; cursor: pointer; }
       .side-link > span:first-child { width: 18px; color: #78add1; font-size: 1.1rem; text-align: center; }
       .side-link:hover, .side-link.current { color: #fff; background: #18334f; }
+      .side-link[hidden] { display: none; }
       .lab-menu-row { display: flex; align-items: center; border-radius: 9px; }
       .lab-menu-row .side-link { flex: 1; min-width: 0; }
       .lab-menu-toggle { display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; margin-right: 3px; border: 0; border-radius: 7px; color: #7895b6; background: transparent; cursor: pointer; }
@@ -181,7 +182,7 @@
       .topbar-path span { margin: 0 8px; color: #6683a5; }
       .live-pill { display: inline-flex; align-items: center; gap: 9px; padding: 7px 10px; border: 1px solid #31506f; border-radius: 99px; color: #b6cde4; font-size: .73rem; font-weight: 700; white-space: nowrap; }
       .theme-toggle { min-height: 33px; }
-      .overview, .lab-panel, .login-panel, .monitor { scroll-margin-top: 86px; }
+      .overview, .lab-panel, .login-panel, .file-panel, .monitor { scroll-margin-top: 86px; }
       .overview { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 30px; min-height: 315px; padding: 38px 42px; overflow: hidden; border: 1px solid #284968; border-radius: 18px; background: linear-gradient(115deg, #132b47, #0c2038 64%, #143a4d); }
       .overview-copy { position: relative; max-width: 570px; z-index: 1; }
       .overview h1 { max-width: 540px; margin: 13px 0 13px; font-size: clamp(2.1rem, 3.6vw, 3.65rem); line-height: 1.08; letter-spacing: -.055em; }
@@ -206,7 +207,32 @@
       .overview-stat span { color: #9bb5d1; font-size: .72rem; font-weight: 700; }
       .overview-stat strong { display: block; margin: 9px 0 3px; color: #eff9ff; font-size: 1.65rem; line-height: 1; }
       .overview-stat small { color: #6f91b3; font-size: .67rem; }
-      .lab-panel, .login-panel, .monitor { width: 100%; margin: 22px 0 0; padding: 27px; border: 1px solid #29476e; border-radius: 15px; background: #101f35; }
+      .lab-panel, .login-panel, .file-panel, .monitor { width: 100%; margin: 22px 0 0; padding: 27px; border: 1px solid #29476e; border-radius: 15px; background: #101f35; }
+      .file-panel[hidden] { display: none; }
+      .file-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+      .file-heading h2 { margin: 7px 0; font-size: 1.45rem; }
+      .file-heading p { max-width: 650px; margin: 0; font-size: .86rem; }
+      .file-account { display: block; margin-top: 14px; color: #9dc3d9; font-size: .82rem; }
+      .file-toolbar { display: flex; align-items: center; gap: 12px; margin-top: 22px; }
+      .file-toolbar input { flex: 1; min-width: 0; margin: 0; padding: 10px 12px; }
+      .file-toolbar button, .file-heading button, .file-actions button { width: auto; margin: 0; padding: 10px 13px; font-size: .8rem; font-weight: 750; }
+      .file-heading button, .file-actions button { border: 1px solid #416985; color: #bceaff; background: #12304a; }
+      .file-heading button:hover, .file-actions button:hover { color: #061320; background: #83dcfa; }
+      .file-actions .file-delete { border-color: #744450; color: #ffb6bc; background: #381d2a; }
+      .file-actions .file-delete:hover { color: #fff; background: #9b3340; }
+      .file-note { margin: 12px 0 0; color: #a9c2de; font-size: .77rem; }
+      .file-status { min-height: 21px; margin: 9px 0 0; color: #8fdbad; font-size: .82rem; }
+      .file-status.error { color: #ffb6bc; }
+      .file-summary { margin: 20px 0 10px; color: #a9c2de; font-size: .81rem; font-weight: 700; }
+      .file-list { display: grid; gap: 9px; }
+      .file-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 15px; border: 1px solid #2c4868; border-radius: 10px; background: #0c1a2e; }
+      .file-row-main { display: flex; align-items: center; gap: 12px; min-width: 0; }
+      .file-icon { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border-radius: 9px; color: #8bdfff; background: #143a55; font-size: 1rem; }
+      .file-details { min-width: 0; }
+      .file-name { display: block; overflow: hidden; color: #eef8ff; font-size: .87rem; text-overflow: ellipsis; white-space: nowrap; }
+      .file-meta { display: block; margin-top: 3px; color: #8faac5; font-size: .73rem; }
+      .file-actions { display: flex; gap: 7px; flex: 0 0 auto; }
+      .file-empty { padding: 28px 15px; border: 1px dashed #416985; border-radius: 10px; color: #a9c2de; text-align: center; font-size: .84rem; }
       .section-heading { display: flex; align-items: start; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
       .section-heading h2, .login-panel h2 { margin: 7px 0 7px; font-size: 1.45rem; letter-spacing: -.025em; }
       .section-heading p { max-width: 650px; margin: 0; font-size: .86rem; }
@@ -261,7 +287,19 @@
       body[data-theme="light"] .hero-ring { border-color: #73bc8b; box-shadow: 0 0 0 21px #16834a0d, 0 0 0 42px #16834a08; }
       body[data-theme="light"] .hero-core { border-color: #72be8b; color: #17613b; background: linear-gradient(150deg, #e5f6e9, #cfead8); box-shadow: 0 0 45px #16834a20; }
       body[data-theme="light"] .hero-caption { border-color: #b9d7c3; color: #3e7651; background: #fff; }
-      body[data-theme="light"] .overview-stat, body[data-theme="light"] .lab-panel, body[data-theme="light"] .login-panel, body[data-theme="light"] .monitor { border-color: #d5e9dc; background: #fff; }
+      body[data-theme="light"] .overview-stat, body[data-theme="light"] .lab-panel, body[data-theme="light"] .login-panel, body[data-theme="light"] .file-panel, body[data-theme="light"] .monitor { border-color: #d5e9dc; background: #fff; }
+      body[data-theme="light"] .file-account, body[data-theme="light"] .file-note, body[data-theme="light"] .file-summary { color: #587060; }
+      body[data-theme="light"] .file-status { color: #16834a; }
+      body[data-theme="light"] .file-status.error { color: #b42535; }
+      body[data-theme="light"] .file-row { border-color: #d5e9dc; background: #f9fcfa; }
+      body[data-theme="light"] .file-icon { color: #16834a; background: #e4f4e9; }
+      body[data-theme="light"] .file-name { color: #173326; }
+      body[data-theme="light"] .file-meta { color: #668471; }
+      body[data-theme="light"] .file-heading button, body[data-theme="light"] .file-actions button { border-color: #b9d7c3; color: #17613b; background: #eaf6ed; }
+      body[data-theme="light"] .file-heading button:hover, body[data-theme="light"] .file-actions button:hover { color: #fff; background: #16834a; }
+      body[data-theme="light"] .file-actions .file-delete { border-color: #e5b1b5; color: #b42535; background: #fff1f2; }
+      body[data-theme="light"] .file-actions .file-delete:hover { color: #fff; background: #b42535; }
+      body[data-theme="light"] .file-empty { border-color: #b9d7c3; color: #587060; }
       body[data-theme="light"] .overview-stat span, body[data-theme="light"] .overview-stat small { color: #6b7f71; }
       body[data-theme="light"] .overview-stat strong { color: #173326; }
       body[data-theme="light"] .section-tag { border-color: #c5e0cd; color: #348753; }
@@ -296,7 +334,12 @@
         .overview { min-height: 0; padding: 27px 23px; }
         .overview h1 { font-size: 2.15rem; }
         .overview-stats, .lab-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .lab-panel, .login-panel, .monitor { padding: 20px; }
+        .lab-panel, .login-panel, .file-panel, .monitor { padding: 20px; }
+        .file-heading { flex-wrap: wrap; }
+        .file-toolbar { flex-wrap: wrap; }
+        .file-toolbar input { flex-basis: 100%; }
+        .file-row { align-items: start; flex-direction: column; }
+        .file-actions { width: 100%; }
         .lab-card { padding: 14px; }
         .section-heading { display: block; }
         .section-tag { display: inline-block; margin-top: 12px; }
@@ -318,6 +361,7 @@
         <nav class="side-nav" aria-label="Project sections">
           <a href="#overview" class="side-link" data-section="overview"><span aria-hidden="true">⌂</span> Overview</a>
           <a href="#login" class="side-link" data-section="login"><span aria-hidden="true">▣</span> Demo API</a>
+          <a href="#file-storage" id="file-nav" class="side-link" data-section="file-storage" hidden><span aria-hidden="true">▤</span> File storage</a>
           <div class="lab-menu">
             <div class="lab-menu-row">
               <a href="#lab" class="side-link" data-section="lab"><span aria-hidden="true">◈</span> Detection lab</a>
@@ -380,7 +424,7 @@
       <section id="login" class="login-panel" aria-labelledby="login-title">
       <div class="eyebrow">Chain Guard · Step 1</div>
       <div class="login-intro">
-        <div><h2 id="login-title">Demo API login</h2><p>Sign in to access fictional account records. This page and every API record are made up for the project.</p></div>
+        <div><h2 id="login-title">Demo API login</h2><p>Sign in to open browser-only demo file storage and fictional account records.</p></div>
         <a class="monitor-link" href="#threat-monitor">View live threat monitor ↓</a>
       </div>
       <div class="notice">Never enter a real password, API key, account number, or personal data here.</div>
@@ -402,6 +446,24 @@
         <button id="verify-button" type="button">Verify and retry</button>
         <p id="challenge-status" class="challenge-status" aria-live="polite"></p>
       </div>
+      </section>
+
+      <section id="file-storage" class="file-panel" aria-labelledby="file-title" hidden>
+        <div class="file-heading">
+          <div><div class="eyebrow">SIGNED-IN DEMO AREA</div><h2 id="file-title">File storage</h2><p>Add and download demo files on this device. Files are stored in this browser, not on the Chain Guard server.</p></div>
+          <button id="file-sign-out" type="button">Sign out</button>
+        </div>
+        <span id="file-account" class="file-account"></span>
+        <div class="notice">This uses shared demo accounts and browser storage. Do not upload real passwords, personal records, or sensitive files. Clearing browser data removes these files.</div>
+        <div class="file-toolbar">
+          <button id="file-add" type="button">Add files</button>
+          <input id="file-input" type="file" multiple hidden />
+          <input id="file-search" type="search" aria-label="Search stored files" placeholder="Search files" />
+        </div>
+        <p class="file-note">Up to 10 MB per file and 50 MB total for each demo account in this browser.</p>
+        <p id="file-status" class="file-status" role="status" aria-live="polite"></p>
+        <div id="file-summary" class="file-summary">No files yet</div>
+        <div id="file-list" class="file-list"></div>
       </section>
 
       <section id="threat-monitor" class="monitor" aria-labelledby="monitor-title">
@@ -469,10 +531,222 @@
       const challengeQuestion = document.querySelector('#challenge-question');
       const challengeAnswer = document.querySelector('#challenge-answer');
       const challengeStatus = document.querySelector('#challenge-status');
+      const filePanel = document.querySelector('#file-storage');
+      const fileNav = document.querySelector('#file-nav');
+      const fileInput = document.querySelector('#file-input');
+      const fileSearch = document.querySelector('#file-search');
+      const fileList = document.querySelector('#file-list');
+      const fileStatus = document.querySelector('#file-status');
+      const fileSummary = document.querySelector('#file-summary');
       let bearerToken = null;
       let verificationToken = null;
       let activeChallenge = null;
       let retryAfterVerification = null;
+      let activeFileOwner = null;
+      let storedFiles = [];
+      let fileDatabasePromise = null;
+      const maxFileBytes = 10 * 1024 * 1024;
+      const maxAccountBytes = 50 * 1024 * 1024;
+
+      function formatBytes(bytes) {
+        return bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024
+          ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      }
+
+      function openFileDatabase() {
+        if (!window.indexedDB) return Promise.reject(new Error('Browser file storage is unavailable here.'));
+        if (!fileDatabasePromise) {
+          fileDatabasePromise = new Promise((resolve, reject) => {
+            const request = indexedDB.open('chain-guard-demo-files', 1);
+            request.onupgradeneeded = () => {
+              const store = request.result.createObjectStore('files', { keyPath: 'id' });
+              store.createIndex('ownerId', 'ownerId');
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error || new Error('Could not open browser file storage.'));
+          }).catch((error) => { fileDatabasePromise = null; throw error; });
+        }
+        return fileDatabasePromise;
+      }
+
+      async function fileTransaction(mode, run) {
+        const database = await openFileDatabase();
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction('files', mode);
+          let value;
+          transaction.oncomplete = () => resolve(value);
+          transaction.onerror = () => reject(transaction.error || new Error('Browser storage failed.'));
+          try {
+            const request = run(transaction.objectStore('files'));
+            if (request) request.onsuccess = () => { value = request.result; };
+          } catch (error) {
+            transaction.abort();
+            reject(error);
+          }
+        });
+      }
+
+      function setFileStatus(message, error = false) {
+        fileStatus.textContent = message;
+        fileStatus.classList.toggle('error', error);
+      }
+
+      function renderFileRows() {
+        const query = fileSearch.value.trim().toLowerCase();
+        const visibleFiles = storedFiles.filter((file) => file.name.toLowerCase().includes(query));
+        fileList.replaceChildren();
+        if (!visibleFiles.length) {
+          const empty = document.createElement('div');
+          empty.className = 'file-empty';
+          empty.textContent = query ? 'No files match your search.' : 'No files yet. Choose Add files to start.';
+          fileList.append(empty);
+          return;
+        }
+        for (const file of visibleFiles) {
+          const row = document.createElement('div');
+          row.className = 'file-row';
+          const main = document.createElement('div');
+          main.className = 'file-row-main';
+          const icon = document.createElement('span');
+          icon.className = 'file-icon';
+          icon.setAttribute('aria-hidden', 'true');
+          icon.textContent = '▤';
+          const details = document.createElement('div');
+          details.className = 'file-details';
+          const name = document.createElement('strong');
+          name.className = 'file-name';
+          name.textContent = file.name;
+          name.title = file.name;
+          const meta = document.createElement('span');
+          meta.className = 'file-meta';
+          meta.textContent = `${formatBytes(file.size)} · Added ${new Date(file.createdAt).toLocaleDateString()}`;
+          details.append(name, meta);
+          main.append(icon, details);
+          const actions = document.createElement('div');
+          actions.className = 'file-actions';
+          const download = document.createElement('button');
+          download.type = 'button';
+          download.textContent = 'Download';
+          download.setAttribute('aria-label', `Download ${file.name}`);
+          download.addEventListener('click', () => downloadStoredFile(file.id));
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'file-delete';
+          remove.textContent = 'Remove';
+          remove.setAttribute('aria-label', `Remove ${file.name}`);
+          remove.addEventListener('click', () => removeStoredFile(file.id));
+          actions.append(download, remove);
+          row.append(main, actions);
+          fileList.append(row);
+        }
+      }
+
+      async function refreshStoredFiles() {
+        if (!activeFileOwner) return;
+        try {
+          const ownerId = activeFileOwner;
+          const files = await fileTransaction('readonly', (store) => store.index('ownerId').getAll(ownerId));
+          if (activeFileOwner !== ownerId) return;
+          storedFiles = files.sort((a, b) => b.createdAt - a.createdAt);
+          const bytes = storedFiles.reduce((total, file) => total + file.size, 0);
+          fileSummary.textContent = `${storedFiles.length} ${storedFiles.length === 1 ? 'file' : 'files'} · ${formatBytes(bytes)} of 50 MB used`;
+          renderFileRows();
+        } catch {
+          setFileStatus('Browser storage could not be opened. Check your browser settings or available space.', true);
+        }
+      }
+
+      async function addStoredFiles(fileSelection) {
+        if (!activeFileOwner || !fileSelection.length) return;
+        const ownerId = activeFileOwner;
+        let used = storedFiles.reduce((total, file) => total + file.size, 0);
+        const accepted = [];
+        let rejected = 0;
+        for (const file of fileSelection) {
+          if (file.size > maxFileBytes || used + file.size > maxAccountBytes) { rejected += 1; continue; }
+          used += file.size;
+          accepted.push({ id: crypto.randomUUID(), ownerId, name: file.name, size: file.size, createdAt: Date.now(), blob: file });
+        }
+        if (!accepted.length) {
+          setFileStatus('No files added. Check the 10 MB per-file and 50 MB total limits.', true);
+          return;
+        }
+        try {
+          await fileTransaction('readwrite', (store) => { accepted.forEach((file) => store.put(file)); });
+          if (activeFileOwner !== ownerId) return;
+          await refreshStoredFiles();
+          setFileStatus(`${accepted.length} ${accepted.length === 1 ? 'file' : 'files'} added to this browser.${rejected ? ` ${rejected} exceeded the size limit.` : ''}`);
+        } catch {
+          setFileStatus('Upload failed. Your browser may be out of storage space.', true);
+        }
+      }
+
+      async function downloadStoredFile(id) {
+        if (!activeFileOwner) return;
+        try {
+          const file = await fileTransaction('readonly', (store) => store.get(id));
+          if (!file || file.ownerId !== activeFileOwner) throw new Error('File not available.');
+          const url = URL.createObjectURL(file.blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = file.name;
+          document.body.append(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
+          setFileStatus(`${file.name} downloaded.`);
+        } catch {
+          setFileStatus('This file could not be downloaded.', true);
+        }
+      }
+
+      async function removeStoredFile(id) {
+        const file = storedFiles.find((item) => item.id === id);
+        if (!file || !activeFileOwner || !confirm(`Remove ${file.name} from this browser? This cannot be undone.`)) return;
+        try {
+          await fileTransaction('readwrite', (store) => store.delete(id));
+          await refreshStoredFiles();
+          setFileStatus(`${file.name} removed from this browser.`);
+        } catch {
+          setFileStatus('This file could not be removed.', true);
+        }
+      }
+
+      function closeFileArea() {
+        activeFileOwner = null;
+        storedFiles = [];
+        fileNav.hidden = true;
+        filePanel.hidden = true;
+        fileSearch.value = '';
+        fileList.replaceChildren();
+      }
+
+      async function openFileArea(user) {
+        activeFileOwner = String(user.id);
+        fileNav.hidden = false;
+        filePanel.hidden = false;
+        document.querySelector('#file-account').textContent = `Signed in as ${user.name} · Demo account ${user.id}`;
+        setFileStatus('');
+        await refreshStoredFiles();
+        if (location.hash === '#file-storage') filePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        else location.hash = '#file-storage';
+        updateSideNav();
+      }
+
+      document.querySelector('#file-add').addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', () => { addStoredFiles([...fileInput.files]); fileInput.value = ''; });
+      fileSearch.addEventListener('input', renderFileRows);
+      document.querySelector('#file-sign-out').addEventListener('click', () => {
+        bearerToken = null;
+        verificationToken = null;
+        recordButton.hidden = true;
+        apiResult.hidden = true;
+        closeFileArea();
+        result.className = '';
+        result.textContent = 'Signed out of the demo. Files remain in this browser.';
+        location.hash = '#login';
+        updateSideNav();
+      });
 
       function setTheme(theme) {
         const isLight = theme === 'light';
@@ -523,6 +797,10 @@
         });
       }
       updateSideNav();
+      if (location.hash === '#file-storage') {
+        result.textContent = 'Sign in to open the demo file area in this browser.';
+        location.replace('#login');
+      }
 
       function showChallenge(data, retry) {
         activeChallenge = data.challenge;
@@ -534,6 +812,9 @@
       }
 
       async function submitLogin() {
+        bearerToken = null;
+        recordButton.hidden = true;
+        closeFileArea();
         result.className = '';
         result.textContent = 'Signing in…';
         try {
@@ -558,6 +839,7 @@
             bearerToken = data.token;
             recordButton.hidden = false;
             challengeBox.hidden = true;
+            await openFileArea(data.user);
           }
         } catch {
           result.className = 'status-error';
@@ -833,7 +1115,15 @@
       }));
 
       document.querySelector('#refresh-monitor').addEventListener('click', refreshThreatMonitor);
-      window.addEventListener('hashchange', () => { renderActiveView(); updateSideNav(); });
+      window.addEventListener('hashchange', () => {
+        if (location.hash === '#file-storage' && !activeFileOwner) {
+          result.textContent = 'Sign in to open the demo file area in this browser.';
+          location.replace('#login');
+          return;
+        }
+        renderActiveView();
+        updateSideNav();
+      });
       abuseTabs.forEach((tab) => tab.addEventListener('click', () => {
         if (location.hash === tab.getAttribute('href')) renderActiveView();
       }));
