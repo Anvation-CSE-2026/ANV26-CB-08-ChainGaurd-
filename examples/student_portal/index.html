@@ -80,7 +80,10 @@
     .scenario.combined span { color: #d8f7e3; }
     .lab-footer { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(220px, .7fr); gap: 12px; margin-top: 15px; }
     .test-result { display: flex; align-items: center; gap: 16px; min-height: 86px; padding: 16px 18px; border: 1px solid #c5dfcc; border-radius: 12px; background: #eef8f1; color: #174b30; }
-    .test-result[data-state="success"] { border-color: #57ba7d; background: linear-gradient(100deg, #e0f5e7, #f0faf3); }
+    .test-result[data-state="success"] { border: 2px solid #118450; background: linear-gradient(100deg, #d5f4df, #ebfaef); color: #0b4a2b; box-shadow: 0 8px 24px #11845020; }
+    .test-result[data-state="success"] .test-result-value { display: grid; place-items: center; min-width: 76px; min-height: 66px; padding: 10px; border-radius: 11px; background: #118450; color: #fff; font-size: 2.05rem; }
+    .test-result[data-state="success"] .test-result-title { font-size: 1.22rem; font-weight: 850; }
+    .test-result[data-state="success"] .test-result-detail { color: #275e3d; font-size: .95rem; }
     .test-result[data-state="running"] { border-color: #90b6d0; background: #eef6fa; color: #174b68; }
     .test-result[data-state="error"] { border-color: #e6aaa1; background: #fff0ed; color: #9d342d; }
     .test-result-value { flex: 0 0 auto; min-width: 58px; font-size: 1.75rem; font-weight: 850; line-height: 1; text-align: center; }
@@ -148,7 +151,7 @@
       stuffing: ['5', 'Failed logins sent', 'Five fictional accounts were tried with wrong demo passwords.'],
       enumeration: ['4', 'Records requested', 'Four sequential fictional student records were opened.'],
       scraping: ['20', 'Listing requests sent', 'The public course list was requested twenty times.'],
-      token: ['50', '50 requests sent', 'One fictional session token was used for fifty requests.'],
+      token: ['50', '50 requests with one fictional token sent', 'The token-overuse test is complete.'],
       bot: ['12', 'Rapid requests sent', 'Twelve quick requests were sent to the fictional course list.']
     };
 
