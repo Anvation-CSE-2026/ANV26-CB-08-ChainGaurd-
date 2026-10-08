@@ -17,6 +17,8 @@ test('registration API requires owner access and never lists app keys', async ()
     assert.equal(denied.status, 401);
     const wrongKey = await fetch(`${base}/api/integrations/apps`, { headers: { 'X-Chain-Guard-Admin-Key': 'wrong' } });
     assert.equal(wrongKey.status, 401);
+    const sharedDemoCode = await fetch(`${base}/api/integrations/overview`, { headers: { 'X-Chain-Guard-Admin-Key': 'stuportal123' } });
+    assert.equal(sharedDemoCode.status, 401);
 
     const create = await fetch(`${base}/api/integrations/apps`, {
       method: 'POST',

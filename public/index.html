@@ -244,6 +244,12 @@
       .integration-key-row input { min-width: 0; }
       .integration-key-row button, .integration-form button, .integration-created button { width: auto; margin: 0; padding: 10px 15px; white-space: nowrap; }
       .integration-hint { display: block; margin-top: 9px; color: #91acc9; font-size: .75rem; line-height: 1.5; }
+      .integration-demo { margin-top: 22px; padding-top: 18px; border-top: 1px solid #345673; }
+      .integration-demo[hidden], .integration-demo-detail[hidden] { display: none; }
+      .integration-demo h3 { margin: 0 0 10px; font-size: 1.08rem; }
+      .integration-demo-detail { margin-top: 12px; padding: 18px; border: 1px solid #345673; border-radius: 10px; background: #0b1a2e; }
+      .integration-demo-detail p { margin: 0 0 14px; }
+      .integration-demo-detail a { color: #a7ebc4; font-weight: 700; }
       .integration-private { margin-top: 22px; padding-top: 18px; border-top: 1px solid #345673; }
       .integration-private h3 { margin: 0 0 5px; font-size: 1.08rem; }
       .integration-private p { margin: 0 0 16px; font-size: .82rem; }
@@ -372,6 +378,9 @@
       body[data-theme="light"] .connector-option input { accent-color: #16834a; }
       body[data-theme="light"] .connector-option:focus-within { outline-color: #16834a; }
       body[data-theme="light"] .integration-hint, body[data-theme="light"] .integration-app small { color: #668471; }
+      body[data-theme="light"] .integration-demo { border-color: #d5e9dc; }
+      body[data-theme="light"] .integration-demo-detail { border-color: #d5e9dc; background: #f8fcf9; }
+      body[data-theme="light"] .integration-demo-detail a { color: #17613b; }
       body[data-theme="light"] .integration-private { border-color: #d5e9dc; }
       body[data-theme="light"] .integration-created { border-color: #95cba5; background: #eef9f1; }
       body[data-theme="light"] .integration-created strong { color: #17613b; }
@@ -572,15 +581,15 @@
       <section id="integrations" class="integrations-panel" aria-labelledby="integrations-title">
         <div class="eyebrow">CONNECT AN APPLICATION · BUILD STAGE 7</div>
         <h2 id="integrations-title">Integrations</h2>
-        <p>Register a fictional app and receive its synthetic security events. App registration is restricted to the project owner; the public demo login does not unlock it.</p>
+        <p>Explore a read-only fictional integration, or use a private owner key to register an app and inspect its synthetic security events.</p>
         <div id="integration-status" class="integration-status" role="status" aria-live="polite">Checking owner setup…</div>
         <div id="integration-auth" class="integration-auth" hidden>
-          <label for="integration-owner-key">Owner key</label>
+          <label for="integration-owner-key">Access key</label>
           <div class="integration-key-row">
-            <input id="integration-owner-key" type="password" autocomplete="off" placeholder="Enter your private owner key" />
+            <input id="integration-owner-key" type="password" autocomplete="off" placeholder="Enter demo code or private owner key" />
             <button id="integration-unlock" type="button">Unlock</button>
           </div>
-          <small class="integration-hint">This key stays in this page's memory only. It is not saved in browser storage or shown to public visitors.</small>
+          <small class="integration-hint">Shared read-only demo code: <code>stuportal123</code>. Private owner keys stay in this page's memory only and are never saved in browser storage.</small>
         </div>
         <fieldset class="connector-picker" id="connector-picker" hidden>
           <legend>Select your backend framework</legend>
@@ -590,6 +599,23 @@
             <label class="connector-option"><input type="radio" name="integration-connector" value="express" /><span>Node.js — Express</span></label>
           </div>
         </fieldset>
+        <div id="integration-demo" class="integration-demo" hidden>
+          <h3>Demo integration</h3>
+          <button id="integration-demo-open" class="integration-app integration-app-button" type="button" aria-expanded="false" aria-controls="integration-demo-detail">
+            <span class="integration-app-head"><strong>Northstar Student Portal</strong><span class="integration-badge">Sample · read only</span></span>
+            <small>Python — FastAPI connector · Fictional application</small>
+          </button>
+          <div id="integration-demo-detail" class="integration-demo-detail" hidden>
+            <p>This is a sample of a connected application. The real Northstar test portal runs locally; its live events are not hosted on this public page.</p>
+            <div class="integration-metrics" aria-label="Illustrative integration test results">
+              <div class="integration-metric"><strong>43</strong><span>Test requests</span></div>
+              <div class="integration-metric"><strong>5</strong><span>Abuse types detected</span></div>
+              <div class="integration-metric"><strong>100</strong><span>Sample highest risk / 100</span></div>
+              <div class="integration-metric"><strong>Read only</strong><span>Demo access</span></div>
+            </div>
+            <a href="#lab">Explore the interactive detection lab →</a>
+          </div>
+        </div>
         <div id="integration-private" class="integration-private" hidden>
           <h3>Register a demo application</h3>
           <p>Give your demo application a fictional name. The connection key appears once. Connected applications are shown separately below with their own activity, alerts, and risk scores.</p>
@@ -706,6 +732,9 @@
       const integrationStatus = document.querySelector('#integration-status');
       const connectorPicker = document.querySelector('#connector-picker');
       const integrationAuth = document.querySelector('#integration-auth');
+      const integrationDemo = document.querySelector('#integration-demo');
+      const integrationDemoDetail = document.querySelector('#integration-demo-detail');
+      const integrationDemoOpen = document.querySelector('#integration-demo-open');
       const integrationPrivate = document.querySelector('#integration-private');
       const integrationOwnerKey = document.querySelector('#integration-owner-key');
       const integrationUnlockButton = document.querySelector('#integration-unlock');
@@ -716,6 +745,7 @@
       const integrationCreated = document.querySelector('#integration-created');
       const integrationConnectionKey = document.querySelector('#integration-connection-key');
       let integrationAdminKey = null;
+      let integrationDemoUnlocked = false;
       let currentConnectionKey = null;
       let selectedIntegrationAppId = null;
       let integrationRegistrationConfigured = false;
@@ -725,17 +755,26 @@
       }
 
       function updateIntegrationConnector() {
-        if (!integrationAdminKey) return;
+        if (!integrationAdminKey && !integrationDemoUnlocked) return;
         const connector = selectedIntegrationConnector();
         const correct = connector === 'fastapi';
-        integrationPrivate.hidden = !correct;
+        integrationPrivate.hidden = !correct || integrationDemoUnlocked;
+        integrationDemo.hidden = !correct || !integrationDemoUnlocked;
         if (connector && !correct) {
           showIntegrationStatus('Wrong connector.', true);
         } else if (correct) {
-          showIntegrationStatus('Connector selected. Choose a registered integration below.');
-          refreshIntegrationApps().catch(() => showIntegrationStatus('Could not load integrations.', true));
+          showIntegrationStatus(integrationDemoUnlocked
+            ? 'Correct connector. Open the read-only demo integration below.'
+            : 'Connector selected. Choose a registered integration below.');
+          if (integrationAdminKey) refreshIntegrationApps().catch(() => showIntegrationStatus('Could not load integrations.', true));
         }
       }
+
+      integrationDemoOpen.addEventListener('click', () => {
+        const expanded = integrationDemoOpen.getAttribute('aria-expanded') === 'true';
+        integrationDemoOpen.setAttribute('aria-expanded', String(!expanded));
+        integrationDemoDetail.hidden = expanded;
+      });
 
       document.querySelectorAll('input[name="integration-connector"]').forEach((option) => {
         option.addEventListener('change', updateIntegrationConnector);
@@ -850,10 +889,10 @@
           const data = await response.json();
           integrationRegistrationConfigured = Boolean(data.registrationConfigured);
           integrationAuth.hidden = false;
-          connectorPicker.hidden = !integrationAdminKey;
+          connectorPicker.hidden = !integrationAdminKey && !integrationDemoUnlocked;
           showIntegrationStatus(!integrationRegistrationConfigured
-            ? 'Owner setup is needed. Set CHAIN_GUARD_ADMIN_KEY on the server to enable protected registration.'
-            : 'Enter the private owner key to unlock your integrations.');
+            ? 'Enter stuportal123 to explore the read-only demo. Private owner access is not configured on this server.'
+            : 'Enter stuportal123 for the read-only demo, or your private owner key for live integrations.');
         } catch {
           showIntegrationStatus('Could not check integration setup. Try refreshing the page.', true);
         }
@@ -879,15 +918,29 @@
       }
 
       integrationUnlockButton.addEventListener('click', async () => {
-        if (!integrationRegistrationConfigured) {
-          return showIntegrationStatus('Owner setup is not enabled on this server. Add a private owner key to the server settings before unlocking.', true);
-        }
         const candidate = integrationOwnerKey.value;
-        if (!candidate) return showIntegrationStatus('Enter the owner key first.', true);
+        if (!candidate) return showIntegrationStatus('Enter an access key first.', true);
+        if (candidate === 'stuportal123') {
+          integrationAdminKey = null;
+          integrationDemoUnlocked = true;
+          integrationOwnerKey.value = '';
+          integrationOwnerKey.disabled = true;
+          integrationUnlockButton.disabled = true;
+          integrationUnlockButton.textContent = 'Demo unlocked';
+          connectorPicker.hidden = false;
+          integrationPrivate.hidden = true;
+          integrationDemo.hidden = true;
+          showIntegrationStatus('Read-only demo unlocked. Now select your backend framework.');
+          return;
+        }
+        if (!integrationRegistrationConfigured) {
+          return showIntegrationStatus('Private owner access is not configured on this server. Use stuportal123 for the read-only demo.', true);
+        }
         try {
           const response = await fetch('/api/integrations/overview', { headers: { 'X-Chain-Guard-Admin-Key': candidate } });
           const data = await response.json();
           if (!response.ok) return showIntegrationStatus(data.error || 'Owner key not accepted.', true);
+          integrationDemoUnlocked = false;
           integrationAdminKey = candidate;
           integrationOwnerKey.value = '';
           integrationOwnerKey.disabled = true;
