@@ -3,3 +3,6 @@ work/
 outputs/
 .env
 .sites-runtime/
+__pycache__/
+*.pyc
+*.egg-info/

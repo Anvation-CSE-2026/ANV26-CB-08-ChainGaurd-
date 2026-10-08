@@ -8,7 +8,7 @@ The existing demo request observer and a future connected application now share 
 
 `event-contract.js` defines the first safe integration event format. It accepts an activity (`login`, `user-list`, `user-record`, `product-list`, or `api-request`), method, response status, pseudonymous client ID, broad device class, and optional SHA-256 account/session fingerprints or numeric record ID. It rejects unknown fields such as passwords, raw tokens, email addresses, and untrusted application IDs. The server will assign the application ID only after authenticating a registered connector. Actual URL paths are not accepted; the server uses generic route labels, avoiding accidental capture of private path data.
 
-The contract and engine reuse are covered by automated tests, including cross-application isolation and external-app enumeration. **This is not yet an event-ingestion API or an installable SDK.** Protected registration is described below; authenticated event ingestion comes next. Do not send real customer data to this demo.
+The contract and engine reuse are covered by automated tests, including cross-application isolation and external-app enumeration. Protected registration and event ingestion are described below. Do not send real customer data to this demo.
 
 ## Protected app registration (step 3)
 
@@ -16,7 +16,7 @@ The sidebar now has an **Integrations** screen. App registration is disabled unl
 
 After configuration, open `/#integrations`, enter the owner key, and register a fictional application such as `Student Portal`. The server generates its ID and a separate random connection key. The connection key is returned only on creation; later app listings contain no keys. The owner key is kept in page memory only, not browser storage. `GET /api/integrations/status` reveals only whether setup is enabled; `GET` and `POST /api/integrations/apps` require the owner key in `X-Chain-Guard-Admin-Key`.
 
-Registrations are **in memory** and reset on server restart or deployment. This is a prototype, not durable credential management. The app key can now send synthetic events through the endpoint below; an automatic connector is the next stage. Do not connect a real application or send production data.
+Registrations are **in memory** and reset on server restart or deployment. This is a prototype, not durable credential management. The app key can send synthetic events through the endpoint below. Do not connect a real application or send production data.
 
 ## Authenticated event ingestion (step 4)
 
@@ -37,6 +37,10 @@ Example fictional event body:
 ```
 
 The app ID comes from the authenticated header, never from the JSON body. The event format intentionally excludes passwords, email addresses, raw tokens, raw IPs, and full URL paths. For this demo, only fictional IDs and records should be used. Connected-app events are scoped by app inside the engine and **not exposed in the public threat monitor**; a protected multi-app dashboard is a later stage. This event API observes completed requests; it does not block a connected application's request.
+
+## FastAPI connector (connected-app step 5)
+
+The first installable prototype connector is in `sdk/python/`. A fictional FastAPI app can add `ChainGuardMiddleware` to observe completed requests and automatically submit safe, pseudonymous events to the API above. Its setup, route mapping, privacy limits, and sample code are in `sdk/python/README.md`. Delivery is best-effort and never turns a Chain Guard outage into a host-app failure. The separate student-portal test app and protected multi-app dashboard are still future steps.
 
 ## Start
 
