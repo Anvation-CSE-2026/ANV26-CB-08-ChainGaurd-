@@ -228,11 +228,24 @@
       .hero-caption { position: absolute; right: 0; bottom: 5px; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #477490; border-radius: 8px; color: #c4e3ee; background: #102b42; font-size: .7rem; font-weight: 700; white-space: nowrap; }
       .hero-caption .online-dot { width: 6px; height: 6px; }
       .overview-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
-      .overview-stat { padding: 17px; border: 1px solid #29476e; border-radius: 12px; background: #101f35; }
+      .overview-stat { display: block; padding: 17px; border: 1px solid #29476e; border-radius: 12px; color: inherit; background: #101f35; text-decoration: none; transition: transform .16s ease, border-color .16s ease, background .16s ease; }
+      .overview-stat:hover, .overview-stat:focus-visible { transform: translateY(-2px); border-color: #5b9ac0; background: #132946; outline: none; }
       .overview-stat span, .overview-stat small { display: block; }
       .overview-stat span { color: #9bb5d1; font-size: .72rem; font-weight: 700; }
       .overview-stat strong { display: block; margin: 9px 0 3px; color: #eff9ff; font-size: 1.65rem; line-height: 1; }
       .overview-stat small { color: #6f91b3; font-size: .67rem; }
+      .overview-stat .stat-action { margin-top: 10px; color: #69d5ff; font-weight: 800; }
+      .activity-panel { width: 100%; margin: 22px 0 0; padding: 27px; border: 1px solid #29476e; border-radius: 15px; background: #101f35; }
+      .activity-list { display: grid; gap: 9px; margin-top: 18px; }
+      .activity-row { display: grid; grid-template-columns: 82px minmax(180px, 1fr) 90px 110px 90px; align-items: center; gap: 12px; padding: 13px 15px; border: 1px solid #29476e; border-radius: 10px; background: #0c1a2e; }
+      .activity-method { color: #8edfff; font-size: .72rem; font-weight: 850; }
+      .activity-endpoint { overflow: hidden; color: #eef8ff; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+      .activity-risk, .activity-time { color: #91acc9; font-size: .72rem; }
+      .activity-action { justify-self: start; padding: 5px 8px; border-radius: 99px; font-size: .66rem; font-weight: 850; text-transform: uppercase; }
+      .activity-action.allow { color: #75daa3; background: #143b30; }
+      .activity-action.rate-limit { color: #f5d681; background: #40371d; }
+      .activity-action.step-up { color: #ffc193; background: #49301f; }
+      .activity-action.block { color: #ff9ca4; background: #47232b; }
       .lab-panel, .login-panel, .file-panel, .integrations-panel, .monitor { width: 100%; margin: 22px 0 0; padding: 27px; border: 1px solid #29476e; border-radius: 15px; background: #101f35; }
       .integrations-panel h2 { margin: 7px 0; font-size: 1.45rem; }
       .integrations-panel > p { max-width: 660px; margin: 0; font-size: .86rem; }
@@ -424,6 +437,17 @@
       body[data-theme="light"] .file-empty { border-color: #b9d7c3; color: #587060; }
       body[data-theme="light"] .overview-stat span, body[data-theme="light"] .overview-stat small { color: #6b7f71; }
       body[data-theme="light"] .overview-stat strong { color: #173326; }
+      body[data-theme="light"] .overview-stat:hover, body[data-theme="light"] .overview-stat:focus-visible { border-color: #79bc90; background: #eef9f1; }
+      body[data-theme="light"] .overview-stat .stat-action { color: #16834a; }
+      body[data-theme="light"] .activity-panel { border-color: #d5e9dc; background: #fff; }
+      body[data-theme="light"] .activity-row { border-color: #d5e9dc; background: #f8fcf9; }
+      body[data-theme="light"] .activity-method { color: #16834a; }
+      body[data-theme="light"] .activity-endpoint { color: #173326; }
+      body[data-theme="light"] .activity-risk, body[data-theme="light"] .activity-time { color: #668471; }
+      body[data-theme="light"] .activity-action.allow { color: #17613b; background: #e4f4e9; }
+      body[data-theme="light"] .activity-action.rate-limit { color: #775300; background: #fff4d9; }
+      body[data-theme="light"] .activity-action.step-up { color: #8a3d12; background: #fff0e5; }
+      body[data-theme="light"] .activity-action.block { color: #a31e2c; background: #fff1f2; }
       body[data-theme="light"] .section-tag { border-color: #c5e0cd; color: #348753; }
       body[data-theme="light"] .lab-card { border-color: #d5e9dc; background: #f9fcfa; }
       body[data-theme="light"] .lab-card.featured { border-color: #88c89c; background: #eef9f1; }
@@ -458,6 +482,8 @@
         .overview { min-height: 0; padding: 27px 23px; }
         .overview h1 { font-size: 2.15rem; }
         .overview-stats, .lab-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .activity-row { grid-template-columns: 65px minmax(150px, 1fr) 78px 94px; }
+        .activity-time { display: none; }
         .lab-panel, .login-panel, .file-panel, .integrations-panel, .monitor { padding: 20px; }
         .integration-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .integration-app-head { align-items: start; flex-direction: column; }
@@ -473,7 +499,7 @@
         .section-tag { display: inline-block; margin-top: 12px; }
         .login-intro { display: block; }
       }
-      @media (max-width: 480px) { .lab-grid { grid-template-columns: 1fr; } .topbar-path { display: none; } .risk-values { flex-wrap: wrap; } .risk-value-primary { width: 100%; } }
+      @media (max-width: 480px) { .lab-grid { grid-template-columns: 1fr; } .topbar-path { display: none; } .risk-values { flex-wrap: wrap; } .risk-value-primary { width: 100%; } .activity-row { grid-template-columns: 56px minmax(0, 1fr) 74px; } .activity-risk { display: none; } }
     </style>
   </head>
   <body>
@@ -489,6 +515,7 @@
         <nav class="side-nav" aria-label="Project sections">
           <a href="#overview" class="side-link" data-section="overview"><span aria-hidden="true">⌂</span> Overview</a>
           <a href="#login" class="side-link" data-section="login"><span aria-hidden="true">▣</span> Demo API</a>
+          <a href="#request-activity" class="side-link" data-section="request-activity"><span aria-hidden="true">≋</span> Request activity</a>
           <a href="#file-storage" id="file-nav" class="side-link" data-section="file-storage" hidden><span aria-hidden="true">▤</span> File storage</a>
           <a href="#integrations" class="side-link" data-section="integrations"><span aria-hidden="true">◇</span> Integrations</a>
           <a href="#owner-access" class="side-link" data-section="owner-access"><span aria-hidden="true">◉</span> Owner access</a>
@@ -533,11 +560,21 @@
           <div class="hero-visual" aria-hidden="true"><div class="hero-ring"><div class="hero-core">CG</div></div><span class="hero-pulse pulse-one"></span><span class="hero-pulse pulse-two"></span><div class="hero-caption"><span class="online-dot"></span> Monitoring demo traffic</div></div>
         </section>
         <div class="overview-stats workspace-page-part" data-page="overview" aria-label="Live security overview">
-          <div class="overview-stat"><span>API requests scored</span><strong id="overview-requests">—</strong><small>Recent in-memory activity</small></div>
-          <div class="overview-stat"><span>Threat alerts</span><strong id="overview-alerts">—</strong><small>Across five detectors</small></div>
-          <div class="overview-stat"><span>Highest risk</span><strong id="overview-risk">—</strong><small>Out of 100</small></div>
-          <div class="overview-stat"><span>Requests blocked</span><strong id="overview-blocks">—</strong><small>Critical responses</small></div>
+          <a class="overview-stat" href="#request-activity"><span>API requests scored</span><strong id="overview-requests">—</strong><small>Recent in-memory activity</small><small class="stat-action">View requests →</small></a>
+          <a class="overview-stat" href="#threat-monitor"><span>Threat alerts</span><strong id="overview-alerts">—</strong><small>Across five detectors</small><small class="stat-action">View threats →</small></a>
+          <a class="overview-stat" href="#risk-section"><span>Highest risk</span><strong id="overview-risk">—</strong><small>Out of 100</small><small class="stat-action">View risk →</small></a>
+          <a class="overview-stat" href="#response-section"><span>Requests blocked</span><strong id="overview-blocks">—</strong><small>Critical responses</small><small class="stat-action">View responses →</small></a>
         </div>
+
+        <section id="request-activity" class="activity-panel workspace-page" data-page="request-activity" aria-labelledby="activity-title">
+          <div class="monitor-header">
+            <div><div class="eyebrow">LIVE REQUEST STREAM</div><h2 id="activity-title">Recent request activity</h2></div>
+            <button id="refresh-activity" class="refresh" type="button">Refresh now</button>
+          </div>
+          <p class="refresh-note">Every normal and suspicious demo API request appears here. Threat Monitor shows only the requests that triggered abuse detection.</p>
+          <div id="activity-list" class="activity-list" aria-live="polite"></div>
+          <p id="activity-updated" class="updated">Loading…</p>
+        </section>
 
         <section id="lab" class="lab-panel workspace-page" data-page="lab" aria-labelledby="lab-title">
           <div class="section-heading"><div><div class="eyebrow">INTERACTIVE LAB</div><h2 id="lab-title">Run a safe traffic scenario</h2><p>Compare legitimate traffic with synthetic attacks. Every request passes through the real detection, scoring, and response pipeline.</p></div><span class="section-tag">7 scenarios</span></div>
@@ -1296,7 +1333,7 @@
         if (hash.startsWith('#lab-')) return 'lab';
         if (hash.startsWith('#abuse-')) return 'threat-monitor';
         const page = hash.slice(1);
-        return ['overview', 'login', 'file-storage', 'integrations', 'owner-access', 'lab', 'threat-monitor', 'risk-section', 'response-section'].includes(page)
+        return ['overview', 'login', 'request-activity', 'file-storage', 'integrations', 'owner-access', 'lab', 'threat-monitor', 'risk-section', 'response-section'].includes(page)
           ? page
           : 'overview';
       }
@@ -1307,6 +1344,7 @@
         const titles = {
           overview: 'Security overview',
           login: 'Demo API',
+          'request-activity': 'Request activity',
           'file-storage': 'File storage',
           integrations: 'Integrations',
           'owner-access': 'Owner access',
@@ -1453,6 +1491,8 @@
       const detectionHeading = document.querySelector('#detection-heading');
       const abuseTabs = [...document.querySelectorAll('.abuse-tab')];
       const responseList = document.querySelector('#response-list');
+      const activityList = document.querySelector('#activity-list');
+      const activityUpdated = document.querySelector('#activity-updated');
       const labResult = document.querySelector('#lab-result');
       const labButtons = [...document.querySelectorAll('.lab-run')];
       const abuseViews = {
@@ -1479,6 +1519,38 @@
         if (className) element.className = className;
         parent.append(element);
         return element;
+      }
+
+      function renderRequestActivity(data) {
+        activityList.replaceChildren();
+        const requests = data.requests || [];
+        if (!requests.length) {
+          addText(activityList, 'div', 'No API requests yet. Run a Detection Lab scenario to create activity.', 'empty');
+          return;
+        }
+        requests.forEach((request) => {
+          const row = document.createElement('article');
+          row.className = 'activity-row';
+          addText(row, 'span', `${request.method} ${request.statusCode}`, 'activity-method');
+          addText(row, 'span', request.endpoint, 'activity-endpoint');
+          addText(row, 'span', `Risk ${request.risk?.score || 0}`, 'activity-risk');
+          addText(row, 'span', labelFor(request.action || 'allow'), `activity-action ${request.action || 'allow'}`);
+          addText(row, 'time', new Date(request.timestamp).toLocaleTimeString(), 'activity-time');
+          activityList.append(row);
+        });
+      }
+
+      async function refreshRequestActivity() {
+        try {
+          const response = await fetch('/api/monitor/risks?limit=30');
+          if (!response.ok) throw new Error('Unable to load request activity');
+          renderRequestActivity(await response.json());
+          activityUpdated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        } catch {
+          activityList.replaceChildren();
+          addText(activityList, 'div', 'Request activity could not be loaded.', 'empty');
+          activityUpdated.textContent = 'Update failed';
+        }
       }
 
       function renderDetections(data) {
@@ -1661,6 +1733,7 @@
       }));
 
       document.querySelector('#refresh-monitor').addEventListener('click', refreshThreatMonitor);
+      document.querySelector('#refresh-activity').addEventListener('click', refreshRequestActivity);
       window.addEventListener('hashchange', () => {
         if (location.hash === '#file-storage' && !activeFileOwner) {
           result.textContent = 'Sign in to open the demo file area in this browser.';
@@ -1676,7 +1749,11 @@
         if (location.hash === tab.getAttribute('href')) renderActiveView();
       }));
       refreshThreatMonitor();
-      setInterval(refreshThreatMonitor, 5000);
+      refreshRequestActivity();
+      setInterval(() => {
+        refreshThreatMonitor();
+        refreshRequestActivity();
+      }, 5000);
     </script>
   </body>
 </html>

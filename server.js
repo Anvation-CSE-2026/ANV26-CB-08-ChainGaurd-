@@ -325,7 +325,16 @@ const server = http.createServer(async (request, response) => {
       const scored = getRecentEvents(500, DEMO_APPLICATION_ID)
         .filter((event) => /^\/api\/(login|products|users)(\/|$)/.test(event.endpoint))
         .slice(0, Math.min(Math.max(Number(url.searchParams.get('limit')) || 20, 1), 100))
-        .map((event) => ({ timestamp: event.timestamp, ip: event.ip, endpoint: event.endpoint, risk: event.risk }));
+        .map((event) => ({
+          timestamp: event.timestamp,
+          ip: event.ip,
+          method: event.method,
+          endpoint: event.endpoint,
+          statusCode: event.statusCode,
+          outcome: event.outcome,
+          action: event.security?.action || 'allow',
+          risk: event.risk
+        }));
       return sendJson(response, 200, { summary: getRiskSummary(getRecentEvents(500, DEMO_APPLICATION_ID)), requests: scored });
     }
 
