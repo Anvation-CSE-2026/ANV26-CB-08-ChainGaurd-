@@ -850,8 +850,6 @@
           const data = await response.json();
           integrationRegistrationConfigured = Boolean(data.registrationConfigured);
           integrationAuth.hidden = false;
-          integrationOwnerKey.disabled = !integrationRegistrationConfigured;
-          integrationUnlockButton.disabled = !integrationRegistrationConfigured;
           connectorPicker.hidden = !integrationAdminKey;
           showIntegrationStatus(!integrationRegistrationConfigured
             ? 'Owner setup is needed. Set CHAIN_GUARD_ADMIN_KEY on the server to enable protected registration.'
@@ -881,6 +879,9 @@
       }
 
       integrationUnlockButton.addEventListener('click', async () => {
+        if (!integrationRegistrationConfigured) {
+          return showIntegrationStatus('Owner setup is not enabled on this server. Add a private owner key to the server settings before unlocking.', true);
+        }
         const candidate = integrationOwnerKey.value;
         if (!candidate) return showIntegrationStatus('Enter the owner key first.', true);
         try {
