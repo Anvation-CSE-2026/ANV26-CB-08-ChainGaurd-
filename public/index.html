@@ -230,6 +230,7 @@
       .integration-status { margin: 18px 0; padding: 12px 14px; border: 1px solid #416985; border-radius: 9px; color: #bceaff; background: #12304a; font-size: .83rem; }
       .integration-status.error { border-color: #744450; color: #ffb6bc; background: #381d2a; }
       .connector-picker { margin: 22px 0; padding: 18px; border: 1px solid #345673; border-radius: 12px; background: #0b1a2e; }
+      .connector-picker[hidden] { display: none; }
       .connector-picker legend { padding: 0 6px; font-weight: 700; }
       .connector-options { display: grid; gap: 9px; margin-top: 8px; }
       .connector-option { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #345673; border-radius: 9px; cursor: pointer; }
@@ -572,14 +573,6 @@
         <div class="eyebrow">CONNECT AN APPLICATION · BUILD STAGE 7</div>
         <h2 id="integrations-title">Integrations</h2>
         <p>Register a fictional app and receive its synthetic security events. App registration is restricted to the project owner; the public demo login does not unlock it.</p>
-        <fieldset class="connector-picker" id="connector-picker">
-          <legend>Select your backend framework</legend>
-          <div class="connector-options">
-            <label class="connector-option"><input type="radio" name="integration-connector" value="fastapi" /><span>Python — FastAPI</span></label>
-            <label class="connector-option"><input type="radio" name="integration-connector" value="spring" /><span>Java — Spring Boot</span></label>
-            <label class="connector-option"><input type="radio" name="integration-connector" value="express" /><span>Node.js — Express</span></label>
-          </div>
-        </fieldset>
         <div id="integration-status" class="integration-status" role="status" aria-live="polite">Checking owner setup…</div>
         <div id="integration-auth" class="integration-auth" hidden>
           <label for="integration-owner-key">Owner key</label>
@@ -589,6 +582,14 @@
           </div>
           <small class="integration-hint">This key stays in this page's memory only. It is not saved in browser storage or shown to public visitors.</small>
         </div>
+        <fieldset class="connector-picker" id="connector-picker" hidden>
+          <legend>Select your backend framework</legend>
+          <div class="connector-options">
+            <label class="connector-option"><input type="radio" name="integration-connector" value="fastapi" /><span>Python — FastAPI</span></label>
+            <label class="connector-option"><input type="radio" name="integration-connector" value="spring" /><span>Java — Spring Boot</span></label>
+            <label class="connector-option"><input type="radio" name="integration-connector" value="express" /><span>Node.js — Express</span></label>
+          </div>
+        </fieldset>
         <div id="integration-private" class="integration-private" hidden>
           <h3>Register a demo application</h3>
           <p>Give your demo application a fictional name. The connection key appears once. Connected applications are shown separately below with their own activity, alerts, and risk scores.</p>
@@ -703,9 +704,11 @@
       const maxFileBytes = 10 * 1024 * 1024;
       const maxAccountBytes = 50 * 1024 * 1024;
       const integrationStatus = document.querySelector('#integration-status');
+      const connectorPicker = document.querySelector('#connector-picker');
       const integrationAuth = document.querySelector('#integration-auth');
       const integrationPrivate = document.querySelector('#integration-private');
       const integrationOwnerKey = document.querySelector('#integration-owner-key');
+      const integrationUnlockButton = document.querySelector('#integration-unlock');
       const integrationApps = document.querySelector('#integration-apps');
       const integrationDetail = document.querySelector('#integration-detail');
       const integrationAlerts = document.querySelector('#integration-alerts');
@@ -722,23 +725,15 @@
       }
 
       function updateIntegrationConnector() {
+        if (!integrationAdminKey) return;
         const connector = selectedIntegrationConnector();
         const correct = connector === 'fastapi';
-        if (!correct) {
-          integrationAdminKey = null;
-          integrationOwnerKey.value = '';
-          currentConnectionKey = null;
-          integrationConnectionKey.textContent = '';
-          integrationCreated.hidden = true;
-          integrationPrivate.hidden = true;
-        }
-        integrationAuth.hidden = !integrationRegistrationConfigured || Boolean(integrationAdminKey);
+        integrationPrivate.hidden = !correct;
         if (connector && !correct) {
           showIntegrationStatus('Wrong connector.', true);
         } else if (correct) {
-          showIntegrationStatus(integrationRegistrationConfigured
-            ? 'Enter the private owner key to unlock your integrations.'
-            : 'Owner setup is needed on this server.');
+          showIntegrationStatus('Connector selected. Choose a registered integration below.');
+          refreshIntegrationApps().catch(() => showIntegrationStatus('Could not load integrations.', true));
         }
       }
 
@@ -854,7 +849,10 @@
           if (!response.ok) throw new Error('unavailable');
           const data = await response.json();
           integrationRegistrationConfigured = Boolean(data.registrationConfigured);
-          integrationAuth.hidden = !integrationRegistrationConfigured;
+          integrationAuth.hidden = false;
+          integrationOwnerKey.disabled = !integrationRegistrationConfigured;
+          integrationUnlockButton.disabled = !integrationRegistrationConfigured;
+          connectorPicker.hidden = !integrationAdminKey;
           showIntegrationStatus(!integrationRegistrationConfigured
             ? 'Owner setup is needed. Set CHAIN_GUARD_ADMIN_KEY on the server to enable protected registration.'
             : 'Enter the private owner key to unlock your integrations.');
@@ -869,7 +867,12 @@
         if (response.status === 401) {
           integrationAdminKey = null;
           integrationPrivate.hidden = true;
+          connectorPicker.hidden = true;
+          document.querySelectorAll('input[name="integration-connector"]').forEach((option) => { option.checked = false; });
           integrationAuth.hidden = false;
+          integrationOwnerKey.disabled = false;
+          integrationUnlockButton.disabled = false;
+          integrationUnlockButton.textContent = 'Unlock';
           throw new Error('Owner access expired. Unlock again.');
         }
         if (!response.ok) throw new Error('Could not refresh registered applications.');
@@ -877,24 +880,22 @@
         if (selectedIntegrationAppId) await loadIntegrationActivity();
       }
 
-      document.querySelector('#integration-unlock').addEventListener('click', async () => {
-        if (selectedIntegrationConnector() !== 'fastapi') {
-          return showIntegrationStatus('Wrong connector.', true);
-        }
+      integrationUnlockButton.addEventListener('click', async () => {
         const candidate = integrationOwnerKey.value;
         if (!candidate) return showIntegrationStatus('Enter the owner key first.', true);
         try {
           const response = await fetch('/api/integrations/overview', { headers: { 'X-Chain-Guard-Admin-Key': candidate } });
           const data = await response.json();
-          if (selectedIntegrationConnector() !== 'fastapi') return;
           if (!response.ok) return showIntegrationStatus(data.error || 'Owner key not accepted.', true);
           integrationAdminKey = candidate;
           integrationOwnerKey.value = '';
-          integrationAuth.hidden = true;
-          integrationPrivate.hidden = false;
+          integrationOwnerKey.disabled = true;
+          integrationUnlockButton.disabled = true;
+          integrationUnlockButton.textContent = 'Unlocked';
+          connectorPicker.hidden = false;
+          integrationPrivate.hidden = true;
           renderIntegrationApps(data.applications);
-          if (selectedIntegrationAppId) await loadIntegrationActivity();
-          showIntegrationStatus('Owner access unlocked. Select an app to inspect its alerts and risk.');
+          showIntegrationStatus('Owner access unlocked. Now select your backend framework.');
         } catch {
           showIntegrationStatus('Could not reach the integration service.', true);
         }
