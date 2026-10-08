@@ -2,6 +2,14 @@
 
 An API security console for the Chain Guard project. It contains fictional accounts, protected demo routes, five abuse detectors, cumulative risk scoring, security responses, an interactive test lab, and browser-only demo file storage.
 
+## Connected-application foundation (steps 1–2)
+
+The existing demo request observer and a future connected application now share the same analysis path in `security-pipeline.js`. Events carry an `applicationId`; detection windows, token comparisons, and risk scores are scoped to that application so traffic from separate apps cannot combine into one attack. Existing demo traffic is identified as `chain-guard-demo`.
+
+`event-contract.js` defines the first safe integration event format. It accepts an activity (`login`, `user-list`, `user-record`, `product-list`, or `api-request`), method, response status, pseudonymous client ID, broad device class, and optional SHA-256 account/session fingerprints or numeric record ID. It rejects unknown fields such as passwords, raw tokens, email addresses, and untrusted application IDs. The server will assign the application ID only after authenticating a registered connector. Actual URL paths are not accepted; the server uses generic route labels, avoiding accidental capture of private path data.
+
+The contract and engine reuse are covered by automated tests, including cross-application isolation and external-app enumeration. **This is not yet a public integration API or an installable SDK.** The next stage is protected application registration and an authenticated event-ingestion endpoint. Do not send real customer data to this demo.
+
 ## Start
 
 ```powershell

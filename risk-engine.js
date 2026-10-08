@@ -1,4 +1,4 @@
-const API_PREFIX = /^\/api\/(login|products|users)(\/|$)/;
+const { activityOf, recordIdOf, sameApplication, isMonitoredActivity } = require('./event-contract');
 
 function recent(events, time, windowMs, predicate) {
   return events.filter((event) => {
@@ -9,7 +9,7 @@ function recent(events, time, windowMs, predicate) {
 
 function hasSequentialUserIds(events) {
   const ids = [...new Set(events
-    .map((event) => event.endpoint.match(/^\/api\/users\/(\d+)$/)?.[1])
+    .map(recordIdOf)
     .filter(Boolean)
     .map(Number))].sort((a, b) => a - b);
   let run = 1;
@@ -40,13 +40,13 @@ function scoreRisk(event, events) {
   const time = new Date(event.timestamp).getTime();
 
   // Monitoring page visits and monitor polling are not customer API behavior.
-  if (!API_PREFIX.test(event.endpoint)) {
+  if (!isMonitoredActivity(event)) {
     return { score: 0, level: 'low', factors, calculatedAt: event.timestamp };
   }
 
-  const sameIp = (candidate) => candidate.ip === event.ip && API_PREFIX.test(candidate.endpoint);
+  const sameIp = (candidate) => sameApplication(event, candidate) && candidate.ip === event.ip && isMonitoredActivity(candidate);
   const loginFailures = recent(events, time, 10 * 60_000, (candidate) =>
-    sameIp(candidate) && candidate.endpoint === '/api/login' && candidate.outcome === 'login-failed'
+    sameIp(candidate) && activityOf(candidate) === 'login' && candidate.outcome === 'login-failed'
   );
   const accounts = new Set(loginFailures.map((candidate) => candidate.accountFingerprint).filter(Boolean));
   if (loginFailures.length >= 5 && accounts.size >= 3) {
@@ -54,7 +54,7 @@ function scoreRisk(event, events) {
   }
 
   const userLookups = recent(events, time, 2 * 60_000, (candidate) =>
-    sameIp(candidate) && candidate.statusCode === 200 && /^\/api\/users\/\d+$/.test(candidate.endpoint)
+    sameIp(candidate) && candidate.statusCode === 200 && activityOf(candidate) === 'user-record'
   );
   if (hasSequentialUserIds(userLookups)) {
     add('enumeration', 25, 'Four or more sequential user IDs in 2 minutes');
@@ -62,7 +62,7 @@ function scoreRisk(event, events) {
 
   const listingRequests = recent(events, time, 60_000, (candidate) =>
     sameIp(candidate) && candidate.method === 'GET' &&
-    (candidate.endpoint === '/api/products' || candidate.endpoint === '/api/users')
+    (activityOf(candidate) === 'product-list' || activityOf(candidate) === 'user-list')
   );
   if (listingRequests.length >= 20) {
     add('scraping', 30, `${listingRequests.length} listing requests in 1 minute`);
@@ -70,7 +70,7 @@ function scoreRisk(event, events) {
 
   if (event.tokenFingerprint) {
     const tokenEvents = recent(events, time, 10 * 60_000, (candidate) =>
-      candidate.tokenFingerprint === event.tokenFingerprint && API_PREFIX.test(candidate.endpoint)
+      sameApplication(event, candidate) && candidate.tokenFingerprint === event.tokenFingerprint && isMonitoredActivity(candidate)
     );
     const ipCount = new Set(tokenEvents.map((candidate) => candidate.ip)).size;
     const deviceCount = new Set(tokenEvents.map((candidate) => candidate.device)).size;
@@ -96,7 +96,7 @@ function scoreRisk(event, events) {
 }
 
 function getRiskSummary(events) {
-  const apiEvents = events.filter((event) => API_PREFIX.test(event.endpoint) && event.risk);
+  const apiEvents = events.filter((event) => isMonitoredActivity(event) && event.risk);
   const latest = apiEvents[0] || null;
   const highest = apiEvents.reduce((max, event) => Math.max(max, event.risk.score), 0);
   return {

@@ -1,4 +1,5 @@
 const { randomUUID } = require('node:crypto');
+const { DEMO_APPLICATION_ID, activityOf, recordIdOf, sameApplication } = require('./event-contract');
 
 const alerts = [];
 const recentAlertKeys = new Map();
@@ -14,7 +15,7 @@ function sameClient(event, candidate) {
 
 function sequentialIds(events) {
   const ids = [...new Set(events
-    .map((event) => event.endpoint.match(/^\/api\/users\/(\d+)$/)?.[1])
+    .map(recordIdOf)
     .filter(Boolean)
     .map(Number))].sort((a, b) => a - b);
 
@@ -34,13 +35,13 @@ function median(values) {
 }
 
 function buildDetection(type, severity, event, description, signals) {
-  return { type, severity, event, description, signals, key: `${type}:${event.ip}:${event.tokenFingerprint || 'anonymous'}` };
+  return { type, severity, event, description, signals, key: `${event.applicationId || DEMO_APPLICATION_ID}:${type}:${event.ip}:${event.tokenFingerprint || 'anonymous'}` };
 }
 
 function inspectCredentialStuffing(event, events) {
-  if (event.endpoint !== '/api/login' || event.outcome !== 'login-failed') return null;
+  if (activityOf(event) !== 'login' || event.outcome !== 'login-failed') return null;
   const attempts = within(events, 10 * 60_000, (candidate) =>
-    sameClient(event, candidate) && candidate.endpoint === '/api/login' && candidate.outcome === 'login-failed'
+    sameClient(event, candidate) && activityOf(candidate) === 'login' && candidate.outcome === 'login-failed'
   );
   const targetedAccounts = new Set(attempts.map((candidate) => candidate.accountFingerprint).filter(Boolean));
   if (attempts.length >= 5 && targetedAccounts.size >= 3) {
@@ -52,9 +53,9 @@ function inspectCredentialStuffing(event, events) {
 }
 
 function inspectEnumeration(event, events) {
-  if (!/^\/api\/users\/\d+$/.test(event.endpoint) || event.statusCode !== 200) return null;
+  if (activityOf(event) !== 'user-record' || event.statusCode !== 200) return null;
   const requests = within(events, 2 * 60_000, (candidate) =>
-    sameClient(event, candidate) && /^\/api\/users\/\d+$/.test(candidate.endpoint) && candidate.statusCode === 200
+    sameClient(event, candidate) && activityOf(candidate) === 'user-record' && candidate.statusCode === 200
   );
   if (sequentialIds(requests)) {
     return buildDetection('enumeration', 'high', event,
@@ -65,10 +66,10 @@ function inspectEnumeration(event, events) {
 }
 
 function inspectScraping(event, events) {
-  const listings = new Set(['/api/products', '/api/users']);
-  if (!listings.has(event.endpoint) || event.method !== 'GET') return null;
+  const listings = new Set(['product-list', 'user-list']);
+  if (!listings.has(activityOf(event)) || event.method !== 'GET') return null;
   const requests = within(events, 60_000, (candidate) =>
-    sameClient(event, candidate) && listings.has(candidate.endpoint) && candidate.method === 'GET'
+    sameClient(event, candidate) && listings.has(activityOf(candidate)) && candidate.method === 'GET'
   );
   if (requests.length >= 20) {
     return buildDetection('scraping', 'medium', event,
@@ -107,12 +108,13 @@ function inspectBotAutomation(event, events) {
 }
 
 function detectAbuse(event, allEvents) {
+  const applicationEvents = allEvents.filter((candidate) => sameApplication(event, candidate));
   const candidates = [
-    inspectCredentialStuffing(event, allEvents),
-    inspectEnumeration(event, allEvents),
-    inspectScraping(event, allEvents),
-    inspectTokenMisuse(event, allEvents),
-    inspectBotAutomation(event, allEvents)
+    inspectCredentialStuffing(event, applicationEvents),
+    inspectEnumeration(event, applicationEvents),
+    inspectScraping(event, applicationEvents),
+    inspectTokenMisuse(event, applicationEvents),
+    inspectBotAutomation(event, applicationEvents)
   ].filter(Boolean);
 
   const created = [];
@@ -126,6 +128,7 @@ function detectAbuse(event, allEvents) {
       type: candidate.type,
       severity: candidate.severity,
       sourceEventId: candidate.event.id,
+      applicationId: candidate.event.applicationId || DEMO_APPLICATION_ID,
       ip: candidate.event.ip,
       endpoint: candidate.event.endpoint,
       description: candidate.description,

@@ -1,4 +1,5 @@
 const { createHash, randomUUID } = require('node:crypto');
+const { DEMO_APPLICATION_ID, classifyEndpoint } = require('./event-contract');
 
 const MAX_EVENTS = 500;
 const events = [];
@@ -33,12 +34,15 @@ function getBearerToken(request) {
 
 function startRequestObservation(request, url) {
   const token = getBearerToken(request);
+  const classification = classifyEndpoint(url.pathname);
   return {
     id: randomUUID(),
+    applicationId: DEMO_APPLICATION_ID,
     startedAt: Date.now(),
     timestamp: new Date().toISOString(),
     method: request.method,
     endpoint: url.pathname,
+    ...classification,
     ip: getClientIp(request),
     device: getDevice(request.headers['user-agent']),
     tokenFingerprint: fingerprint(token),
@@ -55,6 +59,11 @@ function completeRequestObservation(observation, response) {
     statusCode: response.statusCode
   };
   delete event.startedAt;
+  recordEvent(event);
+  return event;
+}
+
+function recordEvent(event) {
   events.unshift(event);
   if (events.length > MAX_EVENTS) events.length = MAX_EVENTS;
   return event;
@@ -86,6 +95,7 @@ module.exports = {
   getBearerToken,
   startRequestObservation,
   completeRequestObservation,
+  recordEvent,
   getRecentEvents,
   getSummary,
   labRequestSecret

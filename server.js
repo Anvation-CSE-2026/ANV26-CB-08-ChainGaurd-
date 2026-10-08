@@ -10,8 +10,9 @@ const {
   getRecentEvents,
   getSummary
 } = require('./request-monitor');
-const { detectAbuse, getDetections, getDetectionSummary } = require('./detection-engine');
+const { getDetections, getDetectionSummary } = require('./detection-engine');
 const { scoreRisk, getRiskSummary } = require('./risk-engine');
+const { analyzeObservedEvent } = require('./security-pipeline');
 const { decideResponse, verifyChallenge, getResponseSummary, getResponseEvents } = require('./response-engine');
 const { SCENARIOS, runLabScenario } = require('./lab-runner');
 
@@ -85,10 +86,7 @@ const server = http.createServer(async (request, response) => {
   const observation = startRequestObservation(request, url);
   response.on('finish', () => {
     const event = completeRequestObservation(observation, response);
-    const recentEvents = getRecentEvents(500);
-    event.risk = scoreRisk(event, recentEvents);
-    const detections = detectAbuse(event, recentEvents);
-    if (detections.length) event.detections = detections.map((detection) => detection.type);
+    analyzeObservedEvent(event, getRecentEvents(500));
   });
 
   try {
