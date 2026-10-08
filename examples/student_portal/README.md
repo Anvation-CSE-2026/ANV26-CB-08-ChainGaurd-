@@ -40,10 +40,26 @@ connector into Chain Guard's existing ingestion and detection path.
 
    Open `http://127.0.0.1:8000/`. Sign in as `student1001` with
    `PortalPass!123`. You can view the fictional roster and record details.
-   The **Send five failed demo logins** button creates five failed attempts
-   across fictional student IDs. Refresh the Chain Guard Integrations status:
-   its Student Portal event count should increase. Protected per-app alerts
-   and scores in the dashboard are planned for step 7.
+   The **Security test lab** has separate buttons for failed logins, sequential
+   records, fast listings, token overuse, rapid automation, and a combined
+   scenario. Refresh this app in Chain Guard Integrations to see its alerts
+   and cumulative risk score. The combined browser scenario sends about 90
+   requests; run it against the local demo, not a real application.
+
+### One-command local demo
+
+From the repository root, run `npm run demo:connected`. The launcher starts
+Chain Guard on `http://127.0.0.1:3100/` and this portal on
+`http://127.0.0.1:8000/`, registers the portal automatically with temporary
+local-only keys, and prints the owner key for the Chain Guard Integrations
+screen. Keep that terminal open. Press Ctrl+C to stop both processes.
+
+The launcher looks for the Python environment used in this workspace at
+`work/fastapi-verify`, then `.venv`. If you installed the dependencies
+elsewhere, set `CHAIN_GUARD_PYTHON` to that Python executable's absolute path.
+Install `requirements.txt` first. The temporary registration and events are
+lost when the local Chain Guard process stops. This launcher does not change
+your public Render deployment or its private owner key.
 
 The portal also runs without the four connector settings, but its page clearly
 shows **Not connected** and no events are sent. Partial configuration fails at
@@ -55,7 +71,7 @@ restart. This example is not a real student system or security control.
 Install FastAPI, httpx, and the connector in a Python environment. Set
 `CHAIN_GUARD_TEST_PYTHON` to that interpreter's absolute path, then run
 `npm test` from the repository root. The optional end-to-end test starts a
-temporary Chain Guard server, registers the portal, sends nine real portal
-requests through the connector, and checks that the existing engine creates
-a credential-stuffing alert and a risk score. It uses generated test keys and
-does not touch your hosted registration.
+temporary Chain Guard server, registers the portal, sends 43 real portal
+requests through the connector, and checks all five detectors, a cumulative
+100/100 score, the protected per-app view, and public-data isolation. It uses
+generated test keys and does not touch your hosted registration.

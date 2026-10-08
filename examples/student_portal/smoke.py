@@ -1,4 +1,4 @@
-"""Exercise the independent portal against a configured Chain Guard test server."""
+"""Exercise all five abuse patterns against a configured Chain Guard server."""
 
 import json
 
@@ -21,11 +21,20 @@ with TestClient(app) as client:
     assert login.status_code == 200
     token = login.json()["token"]
     headers = {"Authorization": f"Bearer {token}"}
-    roster = client.get("/api/students", headers=headers)
-    record = client.get("/api/students/1002", headers=headers)
-    courses = client.get("/api/courses")
-    assert roster.status_code == record.status_code == courses.status_code == 200
-    assert len(roster.json()["students"]) == 6
-    assert record.json()["id"] == "1002"
+    for number in range(1001, 1005):
+        record = client.get(f"/api/students/{number}", headers=headers)
+        assert record.status_code == 200
+        assert record.json()["id"] == str(number)
+    for _ in range(20):
+        assert client.get("/api/courses").status_code == 200
+    for _ in range(12):
+        assert client.get("/api/courses", headers={"User-Agent": "curl/8"}).status_code == 200
+    # The same fictional bearer token now appears on a different device class.
+    mobile = client.get(
+        "/api/students",
+        headers={**headers, "User-Agent": "Mozilla/5.0 Mobile"},
+    )
+    assert mobile.status_code == 200
+    assert len(mobile.json()["students"]) == 6
 
-print(json.dumps({"portalRequests": 9, "loginFailures": 5, "recordId": "1002"}))
+print(json.dumps({"portalRequests": 43, "loginFailures": 5, "abuseScenarios": 5}))

@@ -34,6 +34,7 @@
     .secondary { background: #e9f2f6; color: #155c7b; }
     .danger { background: #fff3ed; color: #aa472d; }
     .actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+    #test-scenarios .primary { width: auto; margin: 0; }
     .notice { margin-top: 16px; padding: 11px 13px; background: #f5f8fb; border-radius: 10px; color: #41566d; font-size: .85rem; }
     .notice.error { background: #fff0ed; color: #9d342d; }
     .rows { display: grid; gap: 9px; margin-top: 18px; }
@@ -67,9 +68,16 @@
           <div id="login-message" class="notice" role="status">Try student1001 with PortalPass!123.</div>
         </section>
         <section class="card" aria-labelledby="test-title">
-          <h2 id="test-title">Security test</h2><p class="small">Send five failed sign-ins using fictional student IDs. Chain Guard should count these under this portal's integration.</p>
-          <div class="actions"><button id="test-logins" class="danger" type="button">Send five failed demo logins</button></div>
-          <div id="test-message" class="notice" role="status">This test uses made-up accounts and wrong demo passwords.</div>
+          <h2 id="test-title">Security test lab</h2><p class="small">Run safe traffic against this fictional portal. Chain Guard should show the matching alerts under this app.</p>
+          <div id="test-scenarios" class="actions">
+            <button class="danger" type="button" data-scenario="stuffing">Failed logins</button>
+            <button class="secondary" type="button" data-scenario="enumeration">Sequential records</button>
+            <button class="secondary" type="button" data-scenario="scraping">Fast listings</button>
+            <button class="secondary" type="button" data-scenario="token">Token overuse</button>
+            <button class="secondary" type="button" data-scenario="bot">Rapid automation</button>
+            <button class="primary" type="button" data-scenario="combined">Run combined test</button>
+          </div>
+          <div id="test-message" class="notice" role="status">Only made-up accounts and records are used. Run one test at a time; the combined test sends about 90 requests.</div>
         </section>
       </aside>
       <div>
@@ -154,18 +162,69 @@
       } catch { byId('courses').textContent = 'Courses unavailable.'; }
     }
 
-    byId('test-logins').addEventListener('click', async () => {
-      const button = byId('test-logins'); button.disabled = true;
-      message('test-message', 'Sending five fictional failed sign-ins…');
-      try {
-        let failed = 0;
+    async function ensureDemoToken() {
+      if (token) return token;
+      const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'student1001', password: 'PortalPass!123' }) });
+      if (!response.ok) throw new Error('Could not start a fictional demo session.');
+      token = (await response.json()).token;
+      return token;
+    }
+
+    async function sendScenario(kind) {
+      if (kind === 'stuffing') {
         for (let id = 1001; id <= 1005; id++) {
           const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: `student${id}`, password: 'wrong-demo-password' }) });
-          if (response.status === 401) failed++;
+          if (response.status !== 401) throw new Error('Failed-login test did not complete as expected.');
         }
-        message('test-message', `${failed} failed demo logins sent. Check the Student Portal count in Chain Guard Integrations.`);
-      } catch { message('test-message', 'The test could not finish. Try again.', true); }
-      finally { button.disabled = false; }
+        return '5 failed fictional logins';
+      }
+      if (kind === 'enumeration') {
+        const demoToken = await ensureDemoToken();
+        for (let id = 1001; id <= 1004; id++) {
+          const response = await fetch(`/api/students/${id}`, { headers: { Authorization: `Bearer ${demoToken}` } });
+          if (!response.ok) throw new Error('Sequential-record test could not read the demo records.');
+        }
+        return '4 sequential fictional records';
+      }
+      if (kind === 'scraping') {
+        for (let request = 0; request < 20; request++) {
+          const response = await fetch('/api/courses');
+          if (!response.ok) throw new Error('Listing test could not finish.');
+        }
+        return '20 public course listings';
+      }
+      if (kind === 'token') {
+        const demoToken = await ensureDemoToken();
+        for (let request = 0; request < 50; request++) {
+          const response = await fetch('/api/students', { headers: { Authorization: `Bearer ${demoToken}` } });
+          if (!response.ok) throw new Error('Token-volume test could not finish.');
+        }
+        return '50 requests with one fictional token';
+      }
+      if (kind === 'bot') {
+        const responses = await Promise.all(Array.from({ length: 12 }, () => fetch('/api/courses')));
+        if (responses.some(response => !response.ok)) throw new Error('Rapid-request test could not finish.');
+        return '12 rapid course requests';
+      }
+      throw new Error('Unknown demo test.');
+    }
+
+    byId('test-scenarios').addEventListener('click', async event => {
+      const button = event.target.closest('button[data-scenario]');
+      if (!button) return;
+      const buttons = byId('test-scenarios').querySelectorAll('button');
+      buttons.forEach(item => { item.disabled = true; });
+      const kind = button.dataset.scenario;
+      const sequence = kind === 'combined' ? ['stuffing', 'enumeration', 'scraping', 'bot', 'token'] : [kind];
+      try {
+        const completed = [];
+        for (const step of sequence) {
+          message('test-message', `Running ${step.replaceAll('-', ' ')} test…`);
+          completed.push(await sendScenario(step));
+        }
+        message('test-message', `${completed.join(' · ')} sent. Open Chain Guard → Integrations and refresh this app's activity.`);
+      } catch (error) { message('test-message', error.message, true); }
+      finally { buttons.forEach(item => { item.disabled = false; }); }
     });
 
     loadStatus(); loadCourses();

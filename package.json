@@ -5,6 +5,7 @@
   "description": "Step 1 demo API and login page for the Chain Guard project",
   "scripts": {
     "start": "node server.js",
+    "demo:connected": "node scripts/start-connected-demo.js",
     "test": "node --test"
   }
 }

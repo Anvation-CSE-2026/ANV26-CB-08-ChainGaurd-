@@ -41,15 +41,29 @@ test('separate FastAPI Student Portal sends events through the real Chain Guard 
       child.on('error', reject);
       child.on('close', (code) => code === 0 ? resolve(output) : reject(new Error(errors || `Python exited ${code}`)));
     });
-    assert.equal(JSON.parse(result).portalRequests, 9);
-    const events = getRecentEvents(20, application.id);
-    assert.equal(events.length, 9);
+    assert.equal(JSON.parse(result).portalRequests, 43);
+    const events = getRecentEvents(100, application.id);
+    assert.equal(events.length, 43);
     assert.equal(events.filter((event) => event.activity === 'login' && event.outcome === 'login-failed').length, 5);
-    assert.ok(getDetections(20, application.id).some((alert) => alert.type === 'credential-stuffing'));
-    assert.ok(events.some((event) => event.risk.score >= 20));
+    const detected = new Set(getDetections(100, application.id).map((alert) => alert.type));
+    for (const type of ['credential-stuffing', 'enumeration', 'scraping', 'token-api-key-misuse', 'bot-automation-abuse']) {
+      assert.ok(detected.has(type), `Missing ${type} detection`);
+    }
+    assert.equal(events[0].risk.score, 100);
+    assert.equal(events[0].risk.level, 'critical');
+    assert.ok(events[0].risk.factors.length >= 4);
     assert.ok(!JSON.stringify(events).includes('wrong-demo-password'));
     assert.ok(!JSON.stringify(events).includes(connectionKey));
     assert.ok(!JSON.stringify(events).includes('PortalPass!123'));
+    const dashboard = await (await fetch(`${base}/api/integrations/apps/${application.id}/activity?limit=50`, {
+      headers: { 'X-Chain-Guard-Admin-Key': ownerKey }
+    })).json();
+    assert.equal(dashboard.application.eventCount, 43);
+    assert.equal(dashboard.risk.highestScore, 100);
+    assert.equal(dashboard.risk.latest.score, 100);
+    assert.ok(dashboard.detections.length >= 5);
+    const publicMonitor = await (await fetch(`${base}/api/monitor/detections?limit=50`)).json();
+    assert.equal(publicMonitor.summary.total, 0);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
