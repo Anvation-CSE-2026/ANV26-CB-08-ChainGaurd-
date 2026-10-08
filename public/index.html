@@ -699,8 +699,8 @@
             <p>Each demo API request is scored from 0 to 100. Signals add points once per behavior.</p>
           </div>
           <div class="risk-values">
-            <div class="risk-value risk-value-primary"><strong id="latest-risk">—</strong><small>Latest request · out of 100</small><span id="risk-level" class="risk-level">Awaiting requests</span></div>
-            <div class="risk-value"><strong id="highest-risk">—</strong><small>Highest seen</small></div>
+            <div class="risk-value risk-value-primary"><strong id="latest-risk">0/100</strong><small>Latest request score</small><span id="risk-level" class="risk-level">No requests scored yet</span></div>
+            <div class="risk-value"><strong id="highest-risk">0/100</strong><small>Highest seen</small></div>
           </div>
           <div class="risk-meter" role="progressbar" aria-label="Latest risk score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="risk-meter-fill" class="risk-meter-fill"></div></div>
         </div>
@@ -1485,13 +1485,13 @@
         criticalAlerts.textContent = alerts.filter((alert) => alert.severity === 'critical').length;
         highAlerts.textContent = alerts.filter((alert) => alert.severity === 'high').length;
         abuseTypes.textContent = Object.keys(summary.byType || {}).length;
-        latestRisk.textContent = data.riskSummary?.latest ? `${data.riskSummary.latest.score}/100` : '—';
-        highestRisk.textContent = data.riskSummary?.scoredRequests ? `${data.riskSummary.highestScore}/100` : '—';
+        latestRisk.textContent = data.riskSummary?.latest ? `${data.riskSummary.latest.score}/100` : '0/100';
+        highestRisk.textContent = data.riskSummary?.scoredRequests ? `${data.riskSummary.highestScore}/100` : '0/100';
         const currentRisk = data.riskSummary?.latest;
         const riskScore = Math.max(0, Math.min(100, Number(currentRisk?.score) || 0));
         const level = ['low', 'medium', 'high', 'critical'].includes(currentRisk?.level) ? currentRisk.level : '';
         riskOverview.dataset.level = level;
-        riskLevel.textContent = level ? `${labelFor(level)} risk` : 'Awaiting requests';
+        riskLevel.textContent = level ? `${labelFor(level)} risk` : 'No requests scored yet';
         riskMeterFill.style.width = `${riskScore}%`;
         riskMeter.setAttribute('aria-valuenow', String(riskScore));
         document.querySelector('#overview-requests').textContent = data.riskSummary?.scoredRequests || 0;
