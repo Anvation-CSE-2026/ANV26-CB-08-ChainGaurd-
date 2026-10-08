@@ -229,7 +229,7 @@
       .integrations-panel > p { max-width: 660px; margin: 0; font-size: .86rem; }
       .integration-status { margin: 18px 0; padding: 12px 14px; border: 1px solid #416985; border-radius: 9px; color: #bceaff; background: #12304a; font-size: .83rem; }
       .integration-status.error { border-color: #744450; color: #ffb6bc; background: #381d2a; }
-      .integration-auth, .integration-private { max-width: 650px; }
+      .integration-auth { max-width: 650px; }
       .integration-auth[hidden], .integration-private[hidden], .integration-created[hidden] { display: none; }
       .integration-key-row { display: flex; gap: 10px; }
       .integration-key-row input { min-width: 0; }
@@ -239,6 +239,7 @@
       .integration-private h3 { margin: 0 0 5px; font-size: 1.08rem; }
       .integration-private p { margin: 0 0 16px; font-size: .82rem; }
       .integration-form { display: flex; gap: 10px; align-items: end; }
+      .integration-form { max-width: 650px; }
       .integration-form label { flex: 1; min-width: 0; margin: 0; }
       .integration-form input { margin-top: 7px; }
       .integration-created { margin-top: 18px; padding: 15px; border: 1px solid #398266; border-radius: 10px; background: #113629; }
@@ -253,6 +254,28 @@
       .integration-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 21px; }
       .integration-list-heading h3 { margin: 0; }
       .integration-list-heading button { width: auto; margin: 0; padding: 8px 11px; border: 1px solid #416985; color: #bceaff; background: #12304a; font-size: .75rem; }
+      .integration-app-button { width: 100%; margin: 0; text-align: left; cursor: pointer; color: inherit; }
+      .integration-app-button[aria-pressed="true"] { border-color: #56bbaa; box-shadow: inset 3px 0 #56bbaa; }
+      .integration-app-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .integration-app-badges { display: flex; gap: 7px; flex-wrap: wrap; }
+      .integration-badge { padding: 3px 8px; border-radius: 99px; background: #153a43; color: #a2e7d2; font-size: .7rem; font-weight: 700; }
+      .integration-badge.warn { background: #4a3025; color: #ffd0a6; }
+      .integration-detail { margin-top: 19px; border: 1px solid #345673; border-radius: 12px; padding: 20px; background: #0b1a2e; }
+      .integration-detail[hidden] { display: none; }
+      .integration-detail-head { display: flex; align-items: start; justify-content: space-between; gap: 14px; }
+      .integration-detail-head button { width: auto; margin: 0; padding: 8px 11px; border: 1px solid #416985; color: #bceaff; background: #12304a; font-size: .75rem; }
+      .integration-detail-head p { margin: 4px 0 0; font-size: .77rem; }
+      .integration-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
+      .integration-metric { padding: 14px; border: 1px solid #345673; border-radius: 10px; background: #101f35; }
+      .integration-metric strong { display: block; font-size: 1.55rem; line-height: 1.2; }
+      .integration-metric span { display: block; margin-top: 4px; color: #91acc9; font-size: .72rem; }
+      .integration-streams { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .integration-streams h4 { margin: 0 0 9px; font-size: .9rem; }
+      .integration-stream { display: grid; align-content: start; gap: 8px; }
+      .integration-stream-item { padding: 11px 12px; border: 1px solid #345673; border-radius: 9px; background: #101f35; font-size: .79rem; }
+      .integration-stream-item strong { display: block; }
+      .integration-stream-item small { display: block; margin-top: 4px; color: #91acc9; font-size: .72rem; }
+      .integration-empty { padding: 16px; border: 1px dashed #416985; border-radius: 9px; color: #91acc9; font-size: .78rem; }
       .file-panel[hidden] { display: none; }
       .file-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
       .file-heading h2 { margin: 7px 0; font-size: 1.45rem; }
@@ -342,6 +365,14 @@
       body[data-theme="light"] .integration-created button { color: #fff; background: #16834a; }
       body[data-theme="light"] .integration-app { border-color: #d5e9dc; background: #f8fcf9; }
       body[data-theme="light"] .integration-list-heading button { border-color: #b9d7c3; color: #17613b; background: #eaf6ed; }
+      body[data-theme="light"] .integration-app-button[aria-pressed="true"] { border-color: #16834a; box-shadow: inset 3px 0 #16834a; }
+      body[data-theme="light"] .integration-badge { background: #e4f4e9; color: #17613b; }
+      body[data-theme="light"] .integration-badge.warn { background: #fff0e8; color: #a24d22; }
+      body[data-theme="light"] .integration-detail { border-color: #d5e9dc; background: #f8fcf9; }
+      body[data-theme="light"] .integration-detail-head button { border-color: #b9d7c3; color: #17613b; background: #eaf6ed; }
+      body[data-theme="light"] .integration-metric, body[data-theme="light"] .integration-stream-item { border-color: #d5e9dc; background: #fff; }
+      body[data-theme="light"] .integration-metric span, body[data-theme="light"] .integration-stream-item small, body[data-theme="light"] .integration-empty { color: #668471; }
+      body[data-theme="light"] .integration-empty { border-color: #b9d7c3; }
       body[data-theme="light"] .file-account, body[data-theme="light"] .file-note, body[data-theme="light"] .file-summary { color: #587060; }
       body[data-theme="light"] .file-status { color: #16834a; }
       body[data-theme="light"] .file-status.error { color: #b42535; }
@@ -379,6 +410,7 @@
         .workspace { padding: 0 20px 48px; }
         .workspace-topbar { margin: 0 -20px 22px; padding: 0 20px; }
         .hero-visual { display: none; }
+        .integration-streams { grid-template-columns: 1fr; }
       }
       @media (max-width: 650px) {
         .workspace { padding: 0 14px 36px; }
@@ -389,6 +421,8 @@
         .overview h1 { font-size: 2.15rem; }
         .overview-stats, .lab-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .lab-panel, .login-panel, .file-panel, .integrations-panel, .monitor { padding: 20px; }
+        .integration-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .integration-app-head { align-items: start; flex-direction: column; }
         .integration-form, .integration-key-row { align-items: stretch; flex-direction: column; }
         .file-heading { flex-wrap: wrap; }
         .file-toolbar { flex-wrap: wrap; }
@@ -523,7 +557,7 @@
       </section>
 
       <section id="integrations" class="integrations-panel" aria-labelledby="integrations-title">
-        <div class="eyebrow">CONNECT AN APPLICATION · BUILD STAGE 3</div>
+        <div class="eyebrow">CONNECT AN APPLICATION · BUILD STAGE 7</div>
         <h2 id="integrations-title">Integrations</h2>
         <p>Register a fictional app and receive its synthetic security events. App registration is restricted to the project owner; the public demo login does not unlock it.</p>
         <div id="integration-status" class="integration-status" role="status" aria-live="polite">Checking owner setup…</div>
@@ -537,7 +571,7 @@
         </div>
         <div id="integration-private" class="integration-private" hidden>
           <h3>Register a demo application</h3>
-          <p>Use a fictional name such as “Student Portal”. The connection key appears once. Synthetic events can now be sent through the API; an automatic app connector is the next build stage.</p>
+          <p>Use a fictional name such as “Student Portal”. The connection key appears once. Connected applications are shown separately below with their own activity, alerts, and risk scores.</p>
           <form id="integration-form" class="integration-form">
             <label for="integration-name">Application name<input id="integration-name" type="text" maxlength="60" placeholder="Student Portal" required /></label>
             <button type="submit">Register app</button>
@@ -550,6 +584,19 @@
           </div>
           <div class="integration-list-heading"><h3>Registered apps</h3><button id="integration-refresh" type="button">Refresh status</button></div>
           <div id="integration-apps" class="integration-apps" aria-live="polite"></div>
+          <div id="integration-detail" class="integration-detail" hidden>
+            <div class="integration-detail-head"><div><h3 id="integration-detail-title">Application activity</h3><p id="integration-detail-subtitle">Select a registered application.</p></div><button id="integration-activity-refresh" type="button">Refresh activity</button></div>
+            <div class="integration-metrics" aria-label="Selected application summary">
+              <div class="integration-metric"><strong id="integration-event-count">0</strong><span>Total events</span></div>
+              <div class="integration-metric"><strong id="integration-alert-count">0</strong><span>Alerts detected</span></div>
+              <div class="integration-metric"><strong id="integration-latest-risk">0</strong><span>Latest risk / 100</span></div>
+              <div class="integration-metric"><strong id="integration-highest-risk">0</strong><span>Highest risk / 100</span></div>
+            </div>
+            <div class="integration-streams">
+              <div><h4>Recent alerts</h4><div id="integration-alerts" class="integration-stream"></div></div>
+              <div><h4>Recent requests</h4><div id="integration-events" class="integration-stream"></div></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -640,10 +687,14 @@
       const integrationPrivate = document.querySelector('#integration-private');
       const integrationOwnerKey = document.querySelector('#integration-owner-key');
       const integrationApps = document.querySelector('#integration-apps');
+      const integrationDetail = document.querySelector('#integration-detail');
+      const integrationAlerts = document.querySelector('#integration-alerts');
+      const integrationEvents = document.querySelector('#integration-events');
       const integrationCreated = document.querySelector('#integration-created');
       const integrationConnectionKey = document.querySelector('#integration-connection-key');
       let integrationAdminKey = null;
       let currentConnectionKey = null;
+      let selectedIntegrationAppId = null;
 
       function showIntegrationStatus(message, error = false) {
         integrationStatus.textContent = message;
@@ -656,20 +707,95 @@
           const empty = document.createElement('p');
           empty.textContent = 'No applications registered yet.';
           integrationApps.append(empty);
+          selectedIntegrationAppId = null;
+          integrationDetail.hidden = true;
           return;
         }
+        if (!applications.some((application) => application.id === selectedIntegrationAppId)) {
+          selectedIntegrationAppId = applications[0].id;
+        }
         for (const application of applications) {
-          const row = document.createElement('div');
-          row.className = 'integration-app';
+          const row = document.createElement('button');
+          row.type = 'button';
+          row.className = 'integration-app integration-app-button';
+          row.setAttribute('aria-pressed', String(application.id === selectedIntegrationAppId));
+          const head = document.createElement('span');
+          head.className = 'integration-app-head';
           const title = document.createElement('strong');
           title.textContent = application.name;
+          const badges = document.createElement('span');
+          badges.className = 'integration-app-badges';
+          const status = document.createElement('span');
+          const recent = application.lastEventAt && Date.now() - new Date(application.lastEventAt).getTime() < 5 * 60_000;
+          status.className = `integration-badge${recent ? '' : ' warn'}`;
+          status.textContent = recent ? 'Receiving events' : application.eventCount ? 'No recent events' : 'Awaiting events';
+          const alerts = document.createElement('span');
+          alerts.className = `integration-badge${application.alerts?.total ? ' warn' : ''}`;
+          alerts.textContent = `${application.alerts?.total || 0} alerts`;
+          badges.append(status, alerts);
+          head.append(title, badges);
           const detail = document.createElement('small');
           detail.textContent = application.eventCount
-            ? `${application.id} · ${application.eventCount} events received · Last event ${new Date(application.lastEventAt).toLocaleString()}`
+            ? `${application.id} · ${application.eventCount} events · Last event ${new Date(application.lastEventAt).toLocaleString()} · Highest risk ${application.risk?.highestScore || 0}/100`
             : `${application.id} · Awaiting first event`;
-          row.append(title, detail);
+          row.append(head, detail);
+          row.addEventListener('click', () => {
+            selectedIntegrationAppId = application.id;
+            integrationApps.querySelectorAll('.integration-app-button').forEach((button) => {
+              button.setAttribute('aria-pressed', String(button === row));
+            });
+            loadIntegrationActivity().catch(() => showIntegrationStatus('Could not load selected app activity.', true));
+          });
           integrationApps.append(row);
         }
+      }
+
+      function renderIntegrationStream(container, items, kind) {
+        container.replaceChildren();
+        if (!items.length) {
+          const empty = document.createElement('div');
+          empty.className = 'integration-empty';
+          empty.textContent = kind === 'alert' ? 'No alerts detected for this app yet.' : 'No requests received from this app yet.';
+          container.append(empty);
+          return;
+        }
+        for (const item of items) {
+          const card = document.createElement('div');
+          card.className = 'integration-stream-item';
+          const title = document.createElement('strong');
+          title.textContent = kind === 'alert'
+            ? `${item.type.replaceAll('-', ' ')} · ${item.severity}`
+            : `${item.activity.replaceAll('-', ' ')} · HTTP ${item.statusCode} · risk ${item.risk?.score || 0}/100`;
+          const detail = document.createElement('small');
+          detail.textContent = kind === 'alert' ? item.description : `${item.device} · ${new Date(item.timestamp).toLocaleString()}`;
+          card.append(title, detail);
+          if (kind === 'alert') {
+            const time = document.createElement('small');
+            time.textContent = new Date(item.timestamp).toLocaleString();
+            card.append(time);
+          }
+          container.append(card);
+        }
+      }
+
+      async function loadIntegrationActivity() {
+        if (!integrationAdminKey || !selectedIntegrationAppId) return;
+        const applicationId = selectedIntegrationAppId;
+        const response = await fetch(`/api/integrations/apps/${encodeURIComponent(applicationId)}/activity?limit=20`, {
+          headers: { 'X-Chain-Guard-Admin-Key': integrationAdminKey }
+        });
+        if (!response.ok) throw new Error('Could not load application activity.');
+        const data = await response.json();
+        if (applicationId !== selectedIntegrationAppId) return;
+        document.querySelector('#integration-detail-title').textContent = data.application.name;
+        document.querySelector('#integration-detail-subtitle').textContent = `${data.application.id} · Last event ${data.application.lastEventAt ? new Date(data.application.lastEventAt).toLocaleString() : 'not yet received'}`;
+        document.querySelector('#integration-event-count').textContent = data.application.eventCount;
+        document.querySelector('#integration-alert-count').textContent = data.alerts.total;
+        document.querySelector('#integration-latest-risk').textContent = data.risk.latest?.score || 0;
+        document.querySelector('#integration-highest-risk').textContent = data.risk.highestScore;
+        renderIntegrationStream(integrationAlerts, data.detections, 'alert');
+        renderIntegrationStream(integrationEvents, data.events, 'event');
+        integrationDetail.hidden = false;
       }
 
       async function loadIntegrationStatus() {
@@ -688,16 +814,23 @@
 
       async function refreshIntegrationApps() {
         if (!integrationAdminKey) return;
-        const response = await fetch('/api/integrations/apps', { headers: { 'X-Chain-Guard-Admin-Key': integrationAdminKey } });
+        const response = await fetch('/api/integrations/overview', { headers: { 'X-Chain-Guard-Admin-Key': integrationAdminKey } });
+        if (response.status === 401) {
+          integrationAdminKey = null;
+          integrationPrivate.hidden = true;
+          integrationAuth.hidden = false;
+          throw new Error('Owner access expired. Unlock again.');
+        }
         if (!response.ok) throw new Error('Could not refresh registered applications.');
         renderIntegrationApps((await response.json()).applications);
+        if (selectedIntegrationAppId) await loadIntegrationActivity();
       }
 
       document.querySelector('#integration-unlock').addEventListener('click', async () => {
         const candidate = integrationOwnerKey.value;
         if (!candidate) return showIntegrationStatus('Enter the owner key first.', true);
         try {
-          const response = await fetch('/api/integrations/apps', { headers: { 'X-Chain-Guard-Admin-Key': candidate } });
+          const response = await fetch('/api/integrations/overview', { headers: { 'X-Chain-Guard-Admin-Key': candidate } });
           const data = await response.json();
           if (!response.ok) return showIntegrationStatus(data.error || 'Owner key not accepted.', true);
           integrationAdminKey = candidate;
@@ -705,7 +838,8 @@
           integrationAuth.hidden = true;
           integrationPrivate.hidden = false;
           renderIntegrationApps(data.applications);
-          showIntegrationStatus('Owner access unlocked for this page. Demo registration is ready.');
+          if (selectedIntegrationAppId) await loadIntegrationActivity();
+          showIntegrationStatus('Owner access unlocked. Select an app to inspect its alerts and risk.');
         } catch {
           showIntegrationStatus('Could not reach the integration service.', true);
         }
@@ -746,11 +880,22 @@
       document.querySelector('#integration-refresh').addEventListener('click', async () => {
         try {
           await refreshIntegrationApps();
-          showIntegrationStatus('Registered app status refreshed.');
-        } catch {
-          showIntegrationStatus('Could not refresh registered apps.', true);
+          showIntegrationStatus('Registered app activity refreshed.');
+        } catch (error) {
+          showIntegrationStatus(error.message, true);
         }
       });
+      document.querySelector('#integration-activity-refresh').addEventListener('click', async () => {
+        try {
+          await refreshIntegrationApps();
+          showIntegrationStatus('Selected app activity refreshed.');
+        } catch (error) {
+          showIntegrationStatus(error.message, true);
+        }
+      });
+      setInterval(() => {
+        if (integrationAdminKey && !integrationPrivate.hidden) refreshIntegrationApps().catch(() => {});
+      }, 10_000);
       loadIntegrationStatus();
 
       function formatBytes(bytes) {

@@ -46,7 +46,13 @@ The first installable prototype connector is in `sdk/python/`. A fictional FastA
 
 `examples/student_portal/` is a separate fictional FastAPI application with its own login page, student roster, record details, and course listing. When configured with a registered app ID and connection key, it sends completed-request events through the connector to Chain Guard. Its page includes a button to generate five failed fictional logins so the existing credential-stuffing detector can be exercised. Setup and local link (`http://127.0.0.1:8000/`) are in `examples/student_portal/README.md`.
 
-An automated end-to-end test starts the real Chain Guard API, registers this portal, performs nine portal requests, and verifies that Chain Guard recorded them and detected credential stuffing. To run it, set `CHAIN_GUARD_TEST_PYTHON` to a Python interpreter with FastAPI, httpx, and the local connector installed, then run `npm test`. The test is skipped when that optional Python environment is unavailable. The portal is not hosted on the public Render link yet; the public service still runs only the Node console. Protected per-app dashboard visibility is step 7.
+An automated end-to-end test starts the real Chain Guard API, registers this portal, performs nine portal requests, and verifies that Chain Guard recorded them and detected credential stuffing. To run it, set `CHAIN_GUARD_TEST_PYTHON` to a Python interpreter with FastAPI, httpx, and the local connector installed, then run `npm test`. The test is skipped when that optional Python environment is unavailable. The portal is not hosted on the public Render link yet; the public service still runs only the Node console. Protected per-app dashboard visibility is described next.
+
+## Protected multi-app dashboard (connected-app step 7)
+
+After unlocking `/#integrations` with the private owner key, the Integrations screen shows a separate selectable card for each registered app. A selected app displays total events, alert count, latest and highest risk scores, recent detections, and recent request activity. Status distinguishes a new app, one receiving events within the last five minutes, and one with no recent events. The view refreshes every 10 seconds and can also be refreshed manually. It uses text-only rendering for event labels and does not reveal app connection keys.
+
+`GET /api/integrations/overview` and `GET /api/integrations/apps/:id/activity?limit=20` require `X-Chain-Guard-Admin-Key`. The activity API returns only registered app IDs and a limited safe subset of event fields; it does not return account or token fingerprints. The public `/api/monitor/*` routes remain scoped to the built-in demo and never show connected-app events. App registrations, events, and alerts are still in memory. On the hosted site, this owner view stays locked until the owner privately configures `CHAIN_GUARD_ADMIN_KEY` in the service environment. The separate portal is not hosted yet.
 
 ## Start
 

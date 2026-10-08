@@ -56,6 +56,15 @@ function sendJson(response, status, body, extraHeaders = {}) {
   response.end(JSON.stringify(body, null, 2));
 }
 
+function summarizeIntegrationRisk(events) {
+  const summary = getRiskSummary(events);
+  return {
+    scoredRequests: summary.scoredRequests,
+    latest: summary.latest ? { score: summary.latest.score, level: summary.latest.level } : null,
+    highestScore: summary.highestScore
+  };
+}
+
 function readJson(request, maxBytes = 1_000_000) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -125,6 +134,55 @@ const server = http.createServer(async (request, response) => {
       } catch (error) {
         return sendJson(response, error.message.startsWith('Demo limit') ? 409 : 400, { error: error.message });
       }
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/integrations/overview') {
+      if (!integrationRegistry.configured) return sendJson(response, 503, { error: 'Owner setup is required.' });
+      if (!integrationRegistry.isAuthorized(request.headers['x-chain-guard-admin-key'])) {
+        return sendJson(response, 401, { error: 'A valid owner key is required.' });
+      }
+      const applications = integrationRegistry.listApplications().map((application) => {
+        const events = getRecentEvents(500, application.id);
+        return {
+          ...application,
+          risk: summarizeIntegrationRisk(events),
+          alerts: getDetectionSummary(application.id)
+        };
+      });
+      return sendJson(response, 200, { applications });
+    }
+
+    const integrationActivityMatch = url.pathname.match(/^\/api\/integrations\/apps\/([a-z0-9-]+)\/activity$/);
+    if (request.method === 'GET' && integrationActivityMatch) {
+      if (!integrationRegistry.configured) return sendJson(response, 503, { error: 'Owner setup is required.' });
+      if (!integrationRegistry.isAuthorized(request.headers['x-chain-guard-admin-key'])) {
+        return sendJson(response, 401, { error: 'A valid owner key is required.' });
+      }
+      const application = integrationRegistry.getApplication(integrationActivityMatch[1]);
+      if (!application) return sendJson(response, 404, { error: 'Registered application not found.' });
+      const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 25, 1), 50);
+      const recent = getRecentEvents(500, application.id);
+      return sendJson(response, 200, {
+        application,
+        risk: summarizeIntegrationRisk(recent),
+        alerts: getDetectionSummary(application.id),
+        events: recent.slice(0, limit).map((event) => ({
+          id: event.id,
+          timestamp: event.timestamp,
+          activity: event.activity,
+          statusCode: event.statusCode,
+          device: event.device,
+          risk: event.risk
+        })),
+        detections: getDetections(limit, application.id).map((detection) => ({
+          id: detection.id,
+          timestamp: detection.timestamp,
+          type: detection.type,
+          severity: detection.severity,
+          description: detection.description,
+          signals: detection.signals
+        }))
+      });
     }
 
     if (request.method === 'POST' && url.pathname === '/api/v1/events') {

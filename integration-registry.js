@@ -19,6 +19,13 @@ function createIntegrationRegistry(adminKey) {
     return [...applications.values()].map(({ keyDigest, ...publicFields }) => publicFields);
   }
 
+  function getApplication(id) {
+    const application = applications.get(id);
+    if (!application) return null;
+    const { keyDigest, ...publicFields } = application;
+    return publicFields;
+  }
+
   function createApplication(name) {
     if (typeof name !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9 _-]{1,59}$/.test(name)) {
       throw new Error('App name must be 2–60 letters, numbers, spaces, hyphens, or underscores.');
@@ -68,7 +75,7 @@ function createIntegrationRegistry(adminKey) {
     application.status = 'receiving-events';
   }
 
-  return { configured, isAuthorized, listApplications, createApplication, authenticatesApplication, allowEvent, recordEvent };
+  return { configured, isAuthorized, listApplications, getApplication, createApplication, authenticatesApplication, allowEvent, recordEvent };
 }
 
 module.exports = { createIntegrationRegistry };
