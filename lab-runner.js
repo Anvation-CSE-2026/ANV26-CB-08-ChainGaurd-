@@ -16,6 +16,11 @@ const SCENARIOS = new Set([
 ]);
 
 let runNumber = 0;
+const latestScenarioResults = new Map();
+
+function getScenarioResults() {
+  return structuredClone([...latestScenarioResults.values()]);
+}
 
 function callApi(port, method, route, { ip, token, body, bot = false } = {}) {
   return new Promise((resolve, reject) => {
@@ -117,13 +122,17 @@ async function runLabScenario(type, port) {
   const newEvents = getRecentEvents(500, DEMO_APPLICATION_ID).filter((event) => !beforeEvents.has(event.id) && sourceIps.has(event.ip));
   const newAlerts = getDetections(200, DEMO_APPLICATION_ID).filter((alert) => !beforeAlerts.has(alert.id) && sourceIps.has(alert.ip));
   const actions = [...new Set(newEvents.map((event) => event.security?.action).filter((action) => action && action !== 'allow'))];
-  return {
+  const peakEvent = newEvents.reduce((peak, event) => (event.risk?.score || 0) > (peak?.risk?.score ?? -1) ? event : peak, null);
+  const result = {
     scenario: type,
     demoIp: ip,
     requestsSent: requests.length,
     statusCodes: [...new Set(requests)],
     detectedTypes: [...new Set(newAlerts.map((alert) => alert.type))],
     highestRiskScore: newEvents.reduce((highest, event) => Math.max(highest, event.risk?.score || 0), 0),
+    highestRiskLevel: peakEvent?.risk?.level || 'low',
+    riskFactors: peakEvent?.risk?.factors || [],
+    completedAt: new Date().toISOString(),
     actions,
     alertsCreated: newAlerts.length,
     ...(type === 'slow-enumeration' ? {
@@ -142,6 +151,8 @@ async function runLabScenario(type, port) {
       }
     } : {})
   };
+  latestScenarioResults.set(type, result);
+  return result;
 }
 
-module.exports = { SCENARIOS, runLabScenario };
+module.exports = { SCENARIOS, runLabScenario, getScenarioResults };

@@ -36,3 +36,19 @@ test('slow enumeration stays below the comparison rate limit but triggers sequen
     assert.ok(result.requestTrace[index].elapsedMs - result.requestTrace[index - 1].elapsedMs >= 1400);
   }
 });
+
+test('scenario scores retain separate latest-run peaks without altering cumulative monitoring', async (t) => {
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const port = server.address().port;
+  const scraping = await runLabScenario('scraping', port);
+  await runLabScenario('legitimate-high-volume', port);
+  const before = await (await fetch(`http://127.0.0.1:${port}/api/monitor/risks`)).json();
+  const stored = await (await fetch(`http://127.0.0.1:${port}/api/lab/results`)).json();
+  const after = await (await fetch(`http://127.0.0.1:${port}/api/monitor/risks`)).json();
+  assert.equal(stored.results.find((result) => result.scenario === 'scraping').highestRiskScore, scraping.highestRiskScore);
+  assert.equal(stored.results.find((result) => result.scenario === 'legitimate-high-volume').highestRiskScore, 0);
+  assert.equal(stored.results.filter((result) => result.scenario === 'legitimate-high-volume').length, 1);
+  assert.deepEqual(before.summary, after.summary);
+  assert.equal(after.summary.latest.score, 0);
+});

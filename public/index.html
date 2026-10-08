@@ -77,6 +77,26 @@
       .risk-level { margin-top: 8px; color: var(--risk-accent); font-size: .74rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
       .risk-meter { grid-column: 1 / -1; height: 9px; overflow: hidden; border-radius: 999px; background: #28435b; }
       .risk-meter-fill { width: 0; height: 100%; border-radius: inherit; background: var(--risk-accent); transition: width .3s ease; }
+      .scenario-risks { margin-top: 24px; padding: 24px; border: 1px solid #29476e; border-radius: 14px; background: #0b1a2e; }
+      .scenario-risks h3 { margin: 0 0 8px; font-size: 1.2rem; }
+      .scenario-risks > p { margin: 0 0 18px; font-size: .85rem; }
+      .scenario-risk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .scenario-risk-card { min-width: 0; padding: 18px; border: 1px solid #29476e; border-radius: 11px; background: #0a182a; }
+      .scenario-risk-head { display: flex; align-items: start; justify-content: space-between; gap: 14px; }
+      .scenario-risk-head strong { font-size: .9rem; }
+      .scenario-risk-score { flex-shrink: 0; color: #65d99a; font-size: 1.4rem; font-weight: 850; }
+      .scenario-risk-score.medium { color: #f5d681; }
+      .scenario-risk-score.high { color: #ffc193; }
+      .scenario-risk-score.critical { color: #ff8991; }
+      .scenario-risk-card p { margin: 8px 0 0; font-size: .78rem; }
+      .scenario-risk-card a { display: inline-block; margin-top: 12px; color: #69d5ff; font-size: .8rem; font-weight: 750; }
+      body[data-theme="light"] .scenario-risks, body[data-theme="light"] .scenario-risk-card { border-color: #d5e9dc; background: #fff; }
+      body[data-theme="light"] .scenario-risk-score { color: #16834a; }
+      body[data-theme="light"] .scenario-risk-score.medium { color: #946800; }
+      body[data-theme="light"] .scenario-risk-score.high { color: #a54b19; }
+      body[data-theme="light"] .scenario-risk-score.critical { color: #c1283b; }
+      body[data-theme="light"] .scenario-risk-card a { color: #16834a; }
+      @media (max-width: 650px) { .scenario-risk-grid { grid-template-columns: 1fr; } }
       .risk-score { display: inline-block; margin-top: 12px; padding: 6px 10px; border-radius: 7px; background: #17385d; color: #d7edff; font-size: .85rem; font-weight: 800; }
       .risk-score.low { background: #153b2b; color: #7ee3a4; }
       .risk-score.medium { background: #3f3418; color: #f5d681; }
@@ -789,6 +809,12 @@
           </div>
           <div class="risk-meter" role="progressbar" aria-label="Latest risk score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="risk-meter-fill" class="risk-meter-fill"></div></div>
         </div>
+        <section class="scenario-risks workspace-page-part" data-monitor-page="risk-section" aria-labelledby="scenario-risks-title">
+          <h3 id="scenario-risks-title">Scenario risk scores</h3>
+          <p>Each score is the highest request risk reached in that scenario’s latest simulation. Run a scenario in Detection Lab to update its own result. Results reset when the demo server restarts.</p>
+          <div id="scenario-risk-list" class="scenario-risk-grid"></div>
+          <p id="scenario-risk-status" class="updated" aria-live="polite">Loading scenario results…</p>
+        </section>
         <nav class="abuse-tabs workspace-page-part" data-monitor-page="threat-monitor" aria-label="Abuse type views">
           <a class="abuse-tab" href="#threat-monitor" data-view="all">All alerts <span class="tab-count" id="count-all">0</span></a>
           <a class="abuse-tab" href="#abuse-credential-stuffing" id="abuse-credential-stuffing" data-view="credential-stuffing">Credential stuffing <span class="tab-count" id="count-credential-stuffing">0</span></a>
@@ -1608,6 +1634,39 @@
       const activityList = document.querySelector('#activity-list');
       const activityUpdated = document.querySelector('#activity-updated');
       const labButtons = [...document.querySelectorAll('.lab-run')];
+      const scenarioRiskList = document.querySelector('#scenario-risk-list');
+      async function refreshScenarioRisks() {
+        try {
+          const response = await fetch('/api/lab/results');
+          if (!response.ok) throw new Error('Could not load scenario results');
+          const data = await response.json();
+          const byScenario = new Map(data.results.map((run) => [run.scenario, run]));
+          scenarioRiskList.replaceChildren();
+          labButtons.forEach((button) => {
+            const run = byScenario.get(button.dataset.scenario);
+            const card = document.createElement('article');
+            card.className = 'scenario-risk-card';
+            const head = document.createElement('div');
+            head.className = 'scenario-risk-head';
+            addText(head, 'strong', button.closest('.lab-card').querySelector('h3').textContent);
+            addText(head, 'span', run ? `${run.highestRiskScore}/100` : '—', `scenario-risk-score ${run?.highestRiskLevel || ''}`);
+            card.append(head);
+            if (run) {
+              addText(card, 'p', `${labelFor(run.highestRiskLevel)} risk · ${run.requestsSent} requests · Latest run ${new Date(run.completedAt).toLocaleString()}`);
+              addText(card, 'p', run.detectedTypes.length ? `Detected: ${run.detectedTypes.map((type) => abuseViews[type]?.label || labelFor(type)).join(', ')}` : 'No abuse detected in this run.');
+              addText(card, 'p', run.riskFactors.length ? run.riskFactors.map((factor) => `+${factor.points} ${abuseViews[factor.type]?.label || labelFor(factor.type)}`).join(' · ') : 'No risk points accumulated.');
+            } else addText(card, 'p', 'Not run yet. Run this scenario to see its measured risk.');
+            const link = document.createElement('a');
+            link.href = `#lab-${button.dataset.scenario}`;
+            link.textContent = run ? 'Run scenario again →' : 'Open scenario →';
+            card.append(link);
+            scenarioRiskList.append(card);
+          });
+          document.querySelector('#scenario-risk-status').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        } catch {
+          document.querySelector('#scenario-risk-status').textContent = 'Could not refresh scenario scores. Try refreshing the page.';
+        }
+      }
       const abuseViews = {
         'credential-stuffing': { label: 'Credential stuffing', description: 'Repeated failed logins across different demo accounts.', rule: 'Detects at least 5 failed logins targeting 3 or more accounts from one IP within 10 minutes.' },
         enumeration: { label: 'Enumeration', description: 'A client tries sequential user record IDs.', rule: 'Detects 4 sequential user IDs successfully accessed from one IP within 2 minutes.' },
@@ -1904,6 +1963,7 @@
           }
           await refreshThreatMonitor();
           await refreshRequestActivity();
+          await refreshScenarioRisks();
         } catch (error) {
           showLabResult(scenarioResult, 'Scenario could not finish', error.message, 'error', 'Try again after checking that the demo server is running.', null);
         } finally {
@@ -1930,9 +1990,11 @@
       refreshThreatMonitor();
       refreshRequestActivity();
       loadSecurityPolicy();
+      refreshScenarioRisks();
       setInterval(() => {
         refreshThreatMonitor();
         refreshRequestActivity();
+        refreshScenarioRisks();
       }, 5000);
     </script>
   </body>

@@ -15,7 +15,7 @@ const { getDetections, getDetectionSummary } = require('./detection-engine');
 const { scoreRisk, getRiskSummary } = require('./risk-engine');
 const { analyzeObservedEvent } = require('./security-pipeline');
 const { decideResponse, verifyChallenge, getResponseSummary, getResponseEvents } = require('./response-engine');
-const { SCENARIOS, runLabScenario } = require('./lab-runner');
+const { SCENARIOS, runLabScenario, getScenarioResults } = require('./lab-runner');
 const { createIntegrationRegistry } = require('./integration-registry');
 const { DEMO_APPLICATION_ID, normalizeIntegrationEvent } = require('./event-contract');
 const { getActivePolicy, listPolicies, setActivePolicy } = require('./security-policy');
@@ -236,6 +236,10 @@ const server = http.createServer(async (request, response) => {
       return verification.ok
         ? sendJson(response, 200, { message: 'Demo verification passed.', verificationToken: verification.token, expiresInSeconds: verification.expiresInSeconds })
         : sendJson(response, 400, { error: verification.error });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/lab/results') {
+      return sendJson(response, 200, { results: getScenarioResults() });
     }
 
     const labMatch = url.pathname.match(/^\/api\/lab\/run\/([a-z-]+)$/);
