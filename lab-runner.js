@@ -1,4 +1,5 @@
 const http = require('node:http');
+const { setTimeout: pause } = require('node:timers/promises');
 const { getRecentEvents, labRequestSecret } = require('./request-monitor');
 const { getDetections } = require('./detection-engine');
 const { DEMO_APPLICATION_ID } = require('./event-contract');
@@ -7,6 +8,7 @@ const SCENARIOS = new Set([
   'legitimate-high-volume',
   'credential-stuffing',
   'enumeration',
+  'slow-enumeration',
   'scraping',
   'token-api-key-misuse',
   'bot-automation-abuse',
@@ -57,9 +59,15 @@ async function runLabScenario(type, port) {
   const beforeEvents = new Set(getRecentEvents(500, DEMO_APPLICATION_ID).map((event) => event.id));
   const beforeAlerts = new Set(getDetections(200, DEMO_APPLICATION_ID).map((alert) => alert.id));
   const requests = [];
+  const requestTrace = [];
+  const sourceIps = new Set();
+  const startedAt = Date.now();
   const send = async (method, route, options = {}) => {
+    const sentAt = Date.now();
+    sourceIps.add(options.ip || ip);
     const response = await callApi(port, method, route, { ip, ...options });
     requests.push(response.status);
+    requestTrace.push({ method, endpoint: route, elapsedMs: sentAt - startedAt, statusCode: response.status });
     return response;
   };
   const login = async () => {
@@ -86,6 +94,12 @@ async function runLabScenario(type, port) {
   } else if (type === 'enumeration') {
     const token = await login();
     for (let id = 1001; id <= 1004; id += 1) await send('GET', `/api/users/${id}`, { token });
+  } else if (type === 'slow-enumeration') {
+    const token = await login();
+    for (let id = 1001; id <= 1004; id += 1) {
+      await pause(1500);
+      await send('GET', `/api/users/${id}`, { token });
+    }
   } else if (type === 'scraping') {
     for (let index = 0; index < 20; index += 1) await send('GET', '/api/products');
   } else if (type === 'token-api-key-misuse') {
@@ -100,8 +114,8 @@ async function runLabScenario(type, port) {
     for (let index = 0; index < 20; index += 1) await send('GET', '/api/products', { token, bot: true });
   }
 
-  const newEvents = getRecentEvents(500, DEMO_APPLICATION_ID).filter((event) => !beforeEvents.has(event.id));
-  const newAlerts = getDetections(200, DEMO_APPLICATION_ID).filter((alert) => !beforeAlerts.has(alert.id));
+  const newEvents = getRecentEvents(500, DEMO_APPLICATION_ID).filter((event) => !beforeEvents.has(event.id) && sourceIps.has(event.ip));
+  const newAlerts = getDetections(200, DEMO_APPLICATION_ID).filter((alert) => !beforeAlerts.has(alert.id) && sourceIps.has(alert.ip));
   const actions = [...new Set(newEvents.map((event) => event.security?.action).filter((action) => action && action !== 'allow'))];
   return {
     scenario: type,
@@ -111,7 +125,22 @@ async function runLabScenario(type, port) {
     detectedTypes: [...new Set(newAlerts.map((alert) => alert.type))],
     highestRiskScore: newEvents.reduce((highest, event) => Math.max(highest, event.risk?.score || 0), 0),
     actions,
-    alertsCreated: newAlerts.length
+    alertsCreated: newAlerts.length,
+    ...(type === 'slow-enumeration' ? {
+      requestTrace,
+      rateLimitComparison: {
+        label: 'Example static rule: up to 3 requests per second',
+        windowMs: 1000,
+        limit: 3,
+        peakRequests: Math.max(...requestTrace.map((request) => requestTrace.filter((candidate) =>
+          candidate.elapsedMs <= request.elapsedMs && candidate.elapsedMs > request.elapsedMs - 1000
+        ).length)),
+        // A comparison rule for this run, not a configured gateway limit.
+        exceeded: requestTrace.some((request) => requestTrace.filter((candidate) =>
+          candidate.elapsedMs <= request.elapsedMs && candidate.elapsedMs > request.elapsedMs - 1000
+        ).length > 3)
+      }
+    } : {})
   };
 }
 

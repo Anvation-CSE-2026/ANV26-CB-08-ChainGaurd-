@@ -380,6 +380,8 @@
       .lab-result p { margin: 4px 0 0; font-size: .76rem; }
       .lab-card .lab-result p { flex: initial; }
       .lab-result a { display: inline-block; margin-top: 7px; color: #84ddfa; font-size: .76rem; font-weight: 800; }
+      .lab-evidence { margin-top: 12px; padding-top: 10px; border-top: 1px solid #39826666; }
+      .lab-evidence ol { margin: 8px 0 0; padding-left: 19px; font-size: .76rem; line-height: 1.7; }
       .login-intro { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
       .login-content { width: min(100%, 660px); margin: 0 auto; }
       .login-panel form, .login-panel .notice, .login-panel .credentials, .login-panel pre, .login-panel .demo-action, .login-panel .challenge-box { max-width: 100%; }
@@ -595,11 +597,12 @@
         </section>
 
         <section id="lab" class="lab-panel workspace-page" data-page="lab" aria-labelledby="lab-title">
-          <div class="section-heading"><div><div class="eyebrow">INTERACTIVE LAB</div><h2 id="lab-title">Run a safe traffic scenario</h2><p>Compare legitimate traffic with synthetic attacks. Every request passes through the real detection, scoring, and response pipeline.</p></div><span class="section-tag">7 scenarios</span></div>
+          <div class="section-heading"><div><div class="eyebrow">INTERACTIVE LAB</div><h2 id="lab-title">Run a safe traffic scenario</h2><p>Compare legitimate traffic with synthetic attacks. Every request passes through the real detection, scoring, and response pipeline.</p></div><span class="section-tag">8 scenarios</span></div>
           <div class="lab-grid">
             <article id="lab-legitimate-high-volume" class="lab-card safe"><span class="lab-number">00 / BASELINE</span><h3>Legitimate high-volume traffic</h3><p>Send 50 normal listing requests from independent fictional visitors.</p><button class="lab-run" type="button" data-scenario="legitimate-high-volume">Run normal traffic <span aria-hidden="true">→</span></button><div class="lab-result" data-lab-result hidden aria-live="polite"></div></article>
             <article id="lab-credential-stuffing" class="lab-card"><span class="lab-number">01 / ACCESS</span><h3>Credential stuffing</h3><p>Try several made-up accounts with wrong demo passwords.</p><button class="lab-run" type="button" data-scenario="credential-stuffing">Run simulation <span aria-hidden="true">→</span></button><div class="lab-result" data-lab-result hidden aria-live="polite"></div></article>
             <article id="lab-enumeration" class="lab-card"><span class="lab-number">02 / DISCOVERY</span><h3>Enumeration</h3><p>Request sequential fictional user IDs from the protected API.</p><button class="lab-run" type="button" data-scenario="enumeration">Run simulation <span aria-hidden="true">→</span></button><div class="lab-result" data-lab-result hidden aria-live="polite"></div></article>
+            <article id="lab-slow-enumeration" class="lab-card"><span class="lab-number">02B / SLOW ATTACK</span><h3>Slow enumeration</h3><p>Request four numbered fictional records with 1.5-second pauses. Compare an example rate limit with Chain Guard’s sequence detection. Takes about 6 seconds.</p><button class="lab-run" type="button" data-scenario="slow-enumeration">Run slow simulation <span aria-hidden="true">→</span></button><div class="lab-result" data-lab-result hidden aria-live="polite"></div></article>
             <article id="lab-scraping" class="lab-card"><span class="lab-number">03 / DATA</span><h3>Scraping</h3><p>Pull the public demo listing repeatedly in a short burst.</p><button class="lab-run" type="button" data-scenario="scraping">Run simulation <span aria-hidden="true">→</span></button><div class="lab-result" data-lab-result hidden aria-live="polite"></div></article>
             <article id="lab-token-api-key-misuse" class="lab-card"><span class="lab-number">04 / TOKEN</span><h3>Token/API-key misuse</h3><p>Reuse one fake session token from two reserved test IPs.</p><button class="lab-run" type="button" data-scenario="token-api-key-misuse">Run simulation <span aria-hidden="true">→</span></button><div class="lab-result" data-lab-result hidden aria-live="polite"></div></article>
             <article id="lab-bot-automation-abuse" class="lab-card"><span class="lab-number">05 / AUTOMATION</span><h3>Bot/automation abuse</h3><p>Send a short sequence of machine-fast demo requests.</p><button class="lab-run" type="button" data-scenario="bot-automation-abuse">Run simulation <span aria-hidden="true">→</span></button><div class="lab-result" data-lab-result hidden aria-live="polite"></div></article>
@@ -1791,7 +1794,7 @@
         const scenarioCard = button.closest('.lab-card');
         const scenarioResult = scenarioCard.querySelector('[data-lab-result]');
         labButtons.forEach((item) => { item.disabled = true; });
-        showLabResult(scenarioResult, 'Running the demo scenario…', 'Synthetic requests are passing through the fake API now.', '', '', null);
+        showLabResult(scenarioResult, 'Running the demo scenario…', scenario === 'slow-enumeration' ? 'Requesting numbered records with 1.5-second pauses. Results arrive in about 6 seconds.' : 'Synthetic requests are passing through the fake API now.', '', '', null);
         try {
           const response = await fetch(`/api/lab/run/${scenario}`, { method: 'POST' });
           const data = await response.json();
@@ -1804,10 +1807,23 @@
             `${scenarioCard.querySelector('h3').textContent} complete`,
             detected.length ? `Detected: ${detected.join(', ')}.` : legitimate ? 'Traffic matched the normal distributed baseline. No abuse was detected.' : 'No detector fired in this run.',
             'success', details,
-            legitimate ? '#risk-section' : scenario === 'combined-risk' ? '#threat-monitor' : `#abuse-${scenario}`,
+            legitimate ? '#risk-section' : scenario === 'combined-risk' ? '#threat-monitor' : scenario === 'slow-enumeration' ? '#abuse-enumeration' : `#abuse-${scenario}`,
             legitimate ? 'View allowed risk result →' : 'Open matching alerts →'
           );
+          if (data.rateLimitComparison) {
+            const evidence = document.createElement('div');
+            evidence.className = 'lab-evidence';
+            addText(evidence, 'strong', 'Rate limit vs request sequence');
+            addText(evidence, 'p', data.rateLimitComparison.label);
+            addText(evidence, 'p', `Measured peak: ${data.rateLimitComparison.peakRequests} request(s) in 1 second. ${data.rateLimitComparison.exceeded ? 'Example rate limit exceeded.' : 'Within example rate limit.'}`);
+            addText(evidence, 'p', data.detectedTypes.includes('enumeration') ? 'Chain Guard detected the numbered record sequence despite the pauses.' : 'Sequence detection did not fire in this run.');
+            const timeline = document.createElement('ol');
+            data.requestTrace.forEach((request) => addText(timeline, 'li', `+${(request.elapsedMs / 1000).toFixed(1)}s · ${request.method} ${request.endpoint} · HTTP ${request.statusCode}`));
+            evidence.append(timeline);
+            scenarioResult.lastElementChild.append(evidence);
+          }
           await refreshThreatMonitor();
+          await refreshRequestActivity();
         } catch (error) {
           showLabResult(scenarioResult, 'Scenario could not finish', error.message, 'error', 'Try again after checking that the demo server is running.', null);
         } finally {
