@@ -51,13 +51,13 @@ function decideResponse(request, observation, risk) {
   const now = Date.now();
   const blockedUntil = blockedIps.get(observation.ip) || 0;
   if (blockedUntil > now) {
-    return { action: 'block', status: 403, reason: 'IP temporarily blocked after critical-risk activity.', retryAfterSeconds: Math.ceil((blockedUntil - now) / 1000) };
+    return { action: 'block', status: 403, reason: 'IP temporarily blocked after critical-risk activity.', blockedUntil, retryAfterSeconds: Math.ceil((blockedUntil - now) / 1000) };
   }
   if (blockedUntil) blockedIps.delete(observation.ip);
 
   if (risk.level === 'critical') {
     blockedIps.set(observation.ip, now + BLOCK_MS);
-    return { action: 'block', status: 403, reason: 'Critical cumulative risk score.', retryAfterSeconds: BLOCK_MS / 1000, alertAdmin: true };
+    return { action: 'block', status: 403, reason: 'Critical cumulative risk score.', blockedUntil: now + BLOCK_MS, retryAfterSeconds: BLOCK_MS / 1000, alertAdmin: true };
   }
 
   if (risk.level === 'high' && !hasValidVerification(request, observation)) {
@@ -73,7 +73,7 @@ function decideResponse(request, observation, risk) {
   }
 
   lastAllowedByIp.set(observation.ip, now);
-  return { action: 'allow', status: null, reason: risk.level === 'high' ? 'Demo verification passed.' : 'Request allowed.' };
+  return { action: 'allow', status: null, reason: risk.level === 'high' ? 'Demo verification passed.' : risk.level === 'medium' ? 'Medium risk; this request met the 2-second pacing requirement.' : 'Risk below the intervention threshold; request allowed.' };
 }
 
 function getResponseSummary(events) {
@@ -84,12 +84,13 @@ function getResponseSummary(events) {
   return { total: Object.values(actions).reduce((total, count) => total + count, 0), byAction: actions };
 }
 
-function getResponseEvents(events, limit = 20) {
+function getResponseEvents(events, limit = 20, action = 'interventions') {
   const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
   return events
-    .filter((event) => event.security && event.security.action !== 'allow')
+    .filter((event) => event.security && (action === 'all' || (action === 'interventions' ? event.security.action !== 'allow' : event.security.action === action)))
     .slice(0, safeLimit)
     .map((event) => ({
+      id: event.id,
       timestamp: event.timestamp,
       endpoint: event.endpoint,
       ip: event.ip,
@@ -97,6 +98,12 @@ function getResponseEvents(events, limit = 20) {
       action: event.security.action,
       reason: event.security.reason,
       decisionScore: event.security.decisionScore,
+      decisionLevel: event.security.decisionLevel,
+      policy: event.security.policy,
+      factors: event.security.factors || [],
+      observedRisk: event.risk,
+      evidence: event.security.evidence || [],
+      blockedUntil: event.security.blockedUntil || null,
       revokedToken: Boolean(event.security.revokedToken),
       alertAdmin: Boolean(event.security.alertAdmin)
     }));

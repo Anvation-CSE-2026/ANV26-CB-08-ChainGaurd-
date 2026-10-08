@@ -258,6 +258,15 @@ const server = http.createServer(async (request, response) => {
         action: decision.action,
         reason: decision.reason,
         decisionScore: decisionRisk.score,
+        decisionLevel: decisionRisk.level,
+        policy: getActivePolicy(),
+        factors: decisionRisk.factors,
+        blockedUntil: decision.blockedUntil || null,
+        evidence: [provisional, ...getRecentEvents(500, DEMO_APPLICATION_ID)]
+          .filter((event) => event.ip === observation.ip && /^\/api\/(login|products|users)(\/|$)/.test(event.endpoint))
+          .slice(0, 10)
+          .reverse()
+          .map((event) => ({ timestamp: event.timestamp, method: event.method, endpoint: event.endpoint })),
         alertAdmin: Boolean(decision.alertAdmin)
       };
       if (decision.action !== 'allow') {
@@ -353,10 +362,14 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/monitor/responses') {
+      const action = url.searchParams.get('action') || 'interventions';
+      if (!['interventions', 'all', 'allow', 'rate-limit', 'step-up', 'block'].includes(action)) {
+        return sendJson(response, 400, { error: 'Choose a valid response filter.' });
+      }
       const events = getRecentEvents(500, DEMO_APPLICATION_ID);
       return sendJson(response, 200, {
         summary: getResponseSummary(events),
-        responses: getResponseEvents(events, url.searchParams.get('limit'))
+        responses: getResponseEvents(events, url.searchParams.get('limit'), action)
       });
     }
 

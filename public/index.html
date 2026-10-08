@@ -99,6 +99,15 @@
       .response-card { padding: 13px 15px; border: 1px solid #2c4773; border-radius: 9px; background: #0a182a; }
       .response-card p { margin: 8px 0 4px; font-size: .86rem; }
       .response-card .alert-meta { margin-top: 4px; }
+      .response-filter { margin: 0; color: inherit; text-align: left; font: inherit; }
+      .response-filter[aria-pressed="true"] { outline: 2px solid #36a76b; outline-offset: 2px; }
+      .response-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; }
+      .response-tools button { width: auto; }
+      .response-explanation { margin-top: 12px; padding-top: 12px; border-top: 1px solid #49658f55; }
+      .response-explanation summary { cursor: pointer; font-size: .85rem; font-weight: 800; }
+      .response-explanation ul, .response-explanation ol { font-size: .8rem; line-height: 1.7; padding-left: 20px; }
+      .block-countdown { display: inline-block; margin-top: 10px; padding: 6px 10px; border-radius: 7px; color: #ffabb2; background: #481f28; font-size: .8rem; font-weight: 800; }
+      body[data-theme="light"] .block-countdown { color: #a31e2c; background: #fff1f2; }
       .action-label { display: inline-block; padding: 4px 8px; border-radius: 6px; background: #153b2b; color: #7ee3a4; font-size: .75rem; font-weight: 800; text-transform: uppercase; }
       .action-label.rate-limit { background: #3f3418; color: #f5d681; }
       .action-label.step-up { background: #4d2b1e; color: #ffc193; }
@@ -799,11 +808,12 @@
           <h3 id="response-title">Security responses</h3>
           <p>Low risk is allowed. Medium risk is slowed. High risk needs demo verification. Critical risk is temporarily blocked and flagged for admin review.</p>
           <div class="response-metrics" aria-label="Response summary">
-            <div class="metric"><span id="count-allowed" class="metric-value">—</span><span class="metric-label">Passed guard</span></div>
-            <div class="metric"><span id="count-limited" class="metric-value">—</span><span class="metric-label">Rate limited</span></div>
-            <div class="metric"><span id="count-verified" class="metric-value">—</span><span class="metric-label">Verification required</span></div>
-            <div class="metric"><span id="count-blocked" class="metric-value">—</span><span class="metric-label">Blocked</span></div>
+            <button type="button" class="metric response-filter" data-response-action="allow" aria-pressed="false"><span id="count-allowed" class="metric-value">—</span><span class="metric-label">Passed guard · view requests</span></button>
+            <button type="button" class="metric response-filter" data-response-action="rate-limit" aria-pressed="false"><span id="count-limited" class="metric-value">—</span><span class="metric-label">Rate limited · view requests</span></button>
+            <button type="button" class="metric response-filter" data-response-action="step-up" aria-pressed="false"><span id="count-verified" class="metric-value">—</span><span class="metric-label">Verification required · view requests</span></button>
+            <button type="button" class="metric response-filter" data-response-action="block" aria-pressed="false"><span id="count-blocked" class="metric-value">—</span><span class="metric-label">Blocked · view requests</span></button>
           </div>
+          <div class="response-tools"><span id="response-filter-status" class="updated">All decisions · latest 20 matching requests</span><button type="button" class="refresh response-filter" data-response-action="all" aria-pressed="true">All decisions</button></div>
           <div id="response-list" class="response-list" aria-live="polite"></div>
         </section>
       </section>
@@ -1585,6 +1595,16 @@
       const detectionHeading = document.querySelector('#detection-heading');
       const abuseTabs = [...document.querySelectorAll('.abuse-tab')];
       const responseList = document.querySelector('#response-list');
+      let responseActionFilter = 'all';
+      const openResponseDetails = new Set();
+      document.querySelectorAll('[data-response-action]').forEach((button) => {
+        button.addEventListener('click', () => {
+          responseActionFilter = button.dataset.responseAction;
+          document.querySelectorAll('[data-response-action]').forEach((option) => option.setAttribute('aria-pressed', String(option.dataset.responseAction === responseActionFilter)));
+          document.querySelector('#response-filter-status').textContent = 'Loading matching decisions…';
+          refreshThreatMonitor();
+        });
+      });
       const activityList = document.querySelector('#activity-list');
       const activityUpdated = document.querySelector('#activity-updated');
       const labButtons = [...document.querySelectorAll('.lab-run')];
@@ -1746,9 +1766,10 @@
         document.querySelector('#count-blocked').textContent = counts.block || 0;
         document.querySelector('#overview-blocks').textContent = counts.block || 0;
         responseList.replaceChildren();
-        const responses = (data.responses || []).slice(0, 10);
+        document.querySelector('#response-filter-status').textContent = `${responseActionFilter === 'all' ? 'All decisions' : labelFor(responseActionFilter)} · latest 20 matching requests`;
+        const responses = data.responses || [];
         if (!responses.length) {
-          addText(responseList, 'div', 'No security interventions yet. Normal API requests are allowed.', 'empty');
+          addText(responseList, 'div', responseActionFilter === 'all' ? 'No decisions yet. Run a Detection Lab scenario to create request activity.' : `No ${labelFor(responseActionFilter).toLowerCase()} decisions in recent activity. Try another filter or run a Detection Lab scenario.`, 'empty');
           return;
         }
         responses.forEach((response) => {
@@ -1759,19 +1780,67 @@
           addText(card, 'div', `Risk ${response.decisionScore}/100 · Source ${response.ip} · ${response.endpoint} · ${new Date(response.timestamp).toLocaleTimeString()}`, 'alert-meta');
           if (response.revokedToken) addText(card, 'div', 'Demo token revoked.', 'alert-meta');
           if (response.alertAdmin) addText(card, 'div', 'Flagged for admin review.', 'alert-meta');
+          if (response.blockedUntil) {
+            const countdown = addText(card, 'span', '', 'block-countdown');
+            countdown.dataset.blockedUntil = response.blockedUntil;
+          }
+          const explanation = document.createElement('details');
+          explanation.className = 'response-explanation';
+          explanation.open = openResponseDetails.has(response.id);
+          addText(explanation, 'summary', 'Why this response?');
+          explanation.addEventListener('toggle', () => {
+            if (!explanation.isConnected) return;
+            if (explanation.open) openResponseDetails.add(response.id);
+            else openResponseDetails.delete(response.id);
+          });
+          addText(explanation, 'p', `Decision: ${labelFor(response.action)} · risk ${response.decisionScore}/100${response.decisionLevel ? ` (${response.decisionLevel})` : ''}. ${response.reason}`);
+          if (response.policy) {
+            const bands = response.policy.thresholds;
+            addText(explanation, 'p', `Policy at decision time: ${response.policy.label}. Medium ${bands.medium}+, high ${bands.high}+, critical ${bands.critical}+.`);
+          }
+          addText(explanation, 'strong', 'Signals used for this decision');
+          if (response.factors.length) {
+            const signals = document.createElement('ul');
+            response.factors.forEach((factor) => addText(signals, 'li', `+${factor.points} ${abuseViews[factor.type]?.label || labelFor(factor.type)}: ${factor.reason}`));
+            explanation.append(signals);
+          } else addText(explanation, 'p', 'No risk signals had accumulated before this request. An existing block can still prevent access.');
+          if (response.observedRisk?.score !== undefined && response.observedRisk.score !== response.decisionScore) {
+            addText(explanation, 'p', `After the request completed, observed risk was ${response.observedRisk.score}/100. The action above used the score available before completion.`);
+            const observed = document.createElement('ul');
+            response.observedRisk.factors.forEach((factor) => addText(observed, 'li', `${abuseViews[factor.type]?.label || labelFor(factor.type)}: ${factor.reason}`));
+            explanation.append(observed);
+          }
+          if (response.evidence.length) {
+            addText(explanation, 'strong', 'Recent request sequence from this source');
+            const evidence = document.createElement('ol');
+            response.evidence.forEach((request) => addText(evidence, 'li', `${new Date(request.timestamp).toLocaleTimeString()} · ${request.method} ${request.endpoint}`));
+            explanation.append(evidence);
+          }
+          card.append(explanation);
           responseList.append(card);
         });
+        updateBlockCountdowns();
       }
 
+      function updateBlockCountdowns() {
+        document.querySelectorAll('[data-blocked-until]').forEach((element) => {
+          const seconds = Math.max(0, Math.ceil((Number(element.dataset.blockedUntil) - Date.now()) / 1000));
+          element.textContent = seconds ? `Temporary block: ${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s remaining` : 'This recorded block has expired';
+        });
+      }
+      setInterval(updateBlockCountdowns, 1000);
+
       async function refreshThreatMonitor() {
+        const requestedAction = responseActionFilter;
         try {
           const [detectionsResponse, responsesResponse] = await Promise.all([
             fetch('/api/monitor/detections?limit=200'),
-            fetch('/api/monitor/responses?limit=20')
+            fetch(`/api/monitor/responses?limit=20&action=${requestedAction}`)
           ]);
           if (!detectionsResponse.ok || !responsesResponse.ok) throw new Error('Unable to load monitor data');
           renderDetections(await detectionsResponse.json());
-          renderResponses(await responsesResponse.json());
+          const responseData = await responsesResponse.json();
+          if (requestedAction === responseActionFilter) renderResponses(responseData);
           lastUpdated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
         } catch {
           alertList.replaceChildren();

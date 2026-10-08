@@ -37,4 +37,6 @@ test('critical risk blocks and keeps the IP blocked temporarily', () => {
   const later = decideResponse({ headers: {} }, subject, { level: 'low' });
   assert.equal(later.action, 'block');
   assert.ok(later.retryAfterSeconds > 0);
+  assert.equal(later.blockedUntil, first.blockedUntil);
+  assert.ok(first.blockedUntil > Date.now());
 });
