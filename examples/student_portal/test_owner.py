@@ -7,6 +7,8 @@ class OwnerLabTests(unittest.TestCase):
     def test_student_page_and_access(self):
         with TestClient(create_app({"PORTAL_OWNER_KEY": "test-private-owner-secret"})) as client:
             self.assertNotIn('id="test-scenarios"', client.get("/").text)
+            self.assertIn('href="/owner"', client.get("/").text)
+            self.assertIn('Open backend dashboard', client.get("/").text)
             self.assertIn("Security test lab", client.get("/owner").text)
             path = "/api/owner/simulations"
             self.assertEqual(client.post(path, json={"scenario": "token"}).status_code, 403)
