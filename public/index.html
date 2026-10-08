@@ -515,7 +515,6 @@
         <nav class="side-nav" aria-label="Project sections">
           <a href="#overview" class="side-link" data-section="overview"><span aria-hidden="true">⌂</span> Overview</a>
           <a href="#login" class="side-link" data-section="login"><span aria-hidden="true">▣</span> Demo API</a>
-          <a href="#request-activity" class="side-link" data-section="request-activity"><span aria-hidden="true">≋</span> Request activity</a>
           <a href="#file-storage" id="file-nav" class="side-link" data-section="file-storage" hidden><span aria-hidden="true">▤</span> File storage</a>
           <a href="#integrations" class="side-link" data-section="integrations"><span aria-hidden="true">◇</span> Integrations</a>
           <a href="#owner-access" class="side-link" data-section="owner-access"><span aria-hidden="true">◉</span> Owner access</a>
@@ -560,13 +559,13 @@
           <div class="hero-visual" aria-hidden="true"><div class="hero-ring"><div class="hero-core">CG</div></div><span class="hero-pulse pulse-one"></span><span class="hero-pulse pulse-two"></span><div class="hero-caption"><span class="online-dot"></span> Monitoring demo traffic</div></div>
         </section>
         <div class="overview-stats workspace-page-part" data-page="overview" aria-label="Live security overview">
-          <a class="overview-stat" href="#request-activity"><span>API requests scored</span><strong id="overview-requests">—</strong><small>Recent in-memory activity</small><small class="stat-action">View requests →</small></a>
+          <a class="overview-stat" href="#overview-activity"><span>API requests scored</span><strong id="overview-requests">—</strong><small>Recent in-memory activity</small><small class="stat-action">View requests ↓</small></a>
           <a class="overview-stat" href="#threat-monitor"><span>Threat alerts</span><strong id="overview-alerts">—</strong><small>Across five detectors</small><small class="stat-action">View threats →</small></a>
           <a class="overview-stat" href="#risk-section"><span>Highest risk</span><strong id="overview-risk">—</strong><small>Out of 100</small><small class="stat-action">View risk →</small></a>
           <a class="overview-stat" href="#response-section"><span>Requests blocked</span><strong id="overview-blocks">—</strong><small>Critical responses</small><small class="stat-action">View responses →</small></a>
         </div>
 
-        <section id="request-activity" class="activity-panel workspace-page" data-page="request-activity" aria-labelledby="activity-title">
+        <section id="overview-activity" class="activity-panel workspace-page-part" data-page="overview" aria-labelledby="activity-title">
           <div class="monitor-header">
             <div><div class="eyebrow">LIVE REQUEST STREAM</div><h2 id="activity-title">Recent request activity</h2></div>
             <button id="refresh-activity" class="refresh" type="button">Refresh now</button>
@@ -1316,7 +1315,8 @@
 
       function updateSideNav() {
         const hash = location.hash || '#overview';
-        const section = hash.startsWith('#lab') ? 'lab'
+        const section = hash.startsWith('#overview') ? 'overview'
+          : hash.startsWith('#lab') ? 'lab'
           : hash.startsWith('#abuse-') ? 'threat-monitor'
           : hash.slice(1);
         document.querySelectorAll('.side-link[data-section]').forEach((link) => {
@@ -1330,10 +1330,11 @@
 
       function currentWorkspacePage() {
         const hash = location.hash || '#overview';
+        if (hash.startsWith('#overview-')) return 'overview';
         if (hash.startsWith('#lab-')) return 'lab';
         if (hash.startsWith('#abuse-')) return 'threat-monitor';
         const page = hash.slice(1);
-        return ['overview', 'login', 'request-activity', 'file-storage', 'integrations', 'owner-access', 'lab', 'threat-monitor', 'risk-section', 'response-section'].includes(page)
+        return ['overview', 'login', 'file-storage', 'integrations', 'owner-access', 'lab', 'threat-monitor', 'risk-section', 'response-section'].includes(page)
           ? page
           : 'overview';
       }
@@ -1344,7 +1345,6 @@
         const titles = {
           overview: 'Security overview',
           login: 'Demo API',
-          'request-activity': 'Request activity',
           'file-storage': 'File storage',
           integrations: 'Integrations',
           'owner-access': 'Owner access',
@@ -1542,7 +1542,7 @@
 
       async function refreshRequestActivity() {
         try {
-          const response = await fetch('/api/monitor/risks?limit=30');
+          const response = await fetch('/api/monitor/risks?limit=10');
           if (!response.ok) throw new Error('Unable to load request activity');
           renderRequestActivity(await response.json());
           activityUpdated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
@@ -1743,7 +1743,11 @@
         renderWorkspacePage();
         renderActiveView();
         updateSideNav();
-        window.scrollTo({ top: 0, behavior: 'auto' });
+        if (location.hash === '#overview-activity') {
+          requestAnimationFrame(() => document.querySelector('#overview-activity').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        } else {
+          window.scrollTo({ top: 0, behavior: 'auto' });
+        }
       });
       abuseTabs.forEach((tab) => tab.addEventListener('click', () => {
         if (location.hash === tab.getAttribute('href')) renderActiveView();
