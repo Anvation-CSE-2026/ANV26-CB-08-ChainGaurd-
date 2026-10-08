@@ -202,6 +202,23 @@
       .owner-flow strong, .owner-flow small { display: block; }
       .owner-flow small { margin-top: 6px; color: #91acc9; line-height: 1.45; }
       .owner-access-note { margin-top: 20px; padding: 14px 16px; border-left: 3px solid #65d99a; border-radius: 8px; color: #a9cabb; background: #12352f; }
+      .policy-card { margin-top: 20px; padding: 20px; border: 1px solid #29456a; border-radius: 14px; background: #102847; }
+      .policy-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+      .policy-heading h3 { margin: 0; font-size: 1.1rem; }
+      .policy-mode { padding: 5px 9px; border: 1px solid #31506f; border-radius: 99px; color: #9de8ed; background: #0b2039; font-size: .72rem; font-weight: 800; white-space: nowrap; }
+      .policy-card > p { margin: 9px 0 0; color: #b6cde4; font-size: .88rem; line-height: 1.5; }
+      .policy-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 17px; }
+      .policy-option { min-height: 112px; padding: 14px; border: 1px solid #31506f; border-radius: 11px; color: #d8edff; text-align: left; background: #0b2039; cursor: pointer; }
+      .policy-option:hover { border-color: #65d8ed; }
+      .policy-option[aria-pressed="true"] { border-color: #56e0a5; outline: 2px solid #56e0a533; background: #123b3c; }
+      .policy-option:disabled { cursor: wait; opacity: .7; }
+      .policy-option strong, .policy-option small { display: block; }
+      .policy-option strong { font-size: .88rem; }
+      .policy-option small { margin-top: 6px; color: #91acc9; line-height: 1.35; }
+      .policy-bands { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+      .policy-band { padding: 7px 9px; border: 1px solid #29456a; border-radius: 7px; color: #b6cde4; font-size: .73rem; background: #0b2039; }
+      .policy-band strong { color: #fff; }
+      .policy-status { min-height: 1.5em; margin-top: 13px !important; color: #9de8ed !important; font-size: .8rem !important; }
       .workspace-topbar { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 15px; min-height: 69px; margin: 0 -34px 28px; padding: 0 34px; border-bottom: 1px solid #243b5a; background: #0b1424ed; backdrop-filter: blur(15px); z-index: 20; }
       .topbar-left, .topbar-actions { display: flex; align-items: center; gap: 14px; }
       .topbar-path { color: #d1deec; font-size: .84rem; font-weight: 650; }
@@ -399,6 +416,16 @@
       body[data-theme="light"] .owner-flow div { border-color: #d5e9dc; background: #f8fcf9; }
       body[data-theme="light"] .owner-flow small { color: #668471; }
       body[data-theme="light"] .owner-access-note { color: #17613b; background: #eef9f1; }
+      body[data-theme="light"] .policy-card { border-color: #d5e9dc; background: #f8fcf9; }
+      body[data-theme="light"] .policy-mode { border-color: #b8dec6; color: #17613b; background: #eef9f1; }
+      body[data-theme="light"] .policy-card > p { color: #52705d; }
+      body[data-theme="light"] .policy-option { border-color: #d5e9dc; color: #193b29; background: #fff; }
+      body[data-theme="light"] .policy-option:hover { border-color: #36a76b; }
+      body[data-theme="light"] .policy-option[aria-pressed="true"] { border-color: #1d9d5d; background: #eef9f1; }
+      body[data-theme="light"] .policy-option small { color: #668471; }
+      body[data-theme="light"] .policy-band { border-color: #d5e9dc; color: #52705d; background: #fff; }
+      body[data-theme="light"] .policy-band strong { color: #193b29; }
+      body[data-theme="light"] .policy-status { color: #17613b !important; }
       body[data-theme="light"] .integration-status { border-color: #b9d7c3; color: #17613b; background: #f4faf6; }
       body[data-theme="light"] .integration-status.error { border-color: #e5b1b5; color: #b42535; background: #fff1f2; }
       body[data-theme="light"] .connector-picker, body[data-theme="light"] .connector-option { border-color: #d5e9dc; background: #f8fcf9; }
@@ -487,6 +514,7 @@
         .lab-panel, .login-panel, .file-panel, .integrations-panel, .monitor { padding: 20px; }
         .integration-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .integration-app-head { align-items: start; flex-direction: column; }
+        .policy-options { grid-template-columns: 1fr; }
         .integration-form, .integration-key-row { align-items: stretch; flex-direction: column; }
         .file-heading { flex-wrap: wrap; }
         .file-toolbar { flex-wrap: wrap; }
@@ -714,7 +742,21 @@
           <div><strong>2. Chain Guard verifies you</strong><small>It checks that you are allowed to manage this organization.</small></div>
           <div><strong>3. Private pages unlock</strong><small>You can manage integrations and view your organization’s alerts.</small></div>
         </div>
-        <div class="owner-access-note">Keycloak is not connected to this prototype yet. This page shows where the private owner sign-in will live; student portal users will not use it.</div>
+        <section class="policy-card" aria-labelledby="policy-title">
+          <div class="policy-heading">
+            <h3 id="policy-title">Security policy</h3>
+            <span id="policy-mode" class="policy-mode">Loading policy</span>
+          </div>
+          <p>Choose how quickly Chain Guard responds after it finds suspicious behaviour. Detection signals stay the same; the selected policy changes the risk bands that trigger an action.</p>
+          <div id="policy-options" class="policy-options" aria-label="Choose a security policy"></div>
+          <div class="policy-bands" aria-label="Active response thresholds">
+            <span class="policy-band"><strong id="policy-medium">—</strong> medium</span>
+            <span class="policy-band"><strong id="policy-high">—</strong> high</span>
+            <span class="policy-band"><strong id="policy-critical">—</strong> critical</span>
+          </div>
+          <p id="policy-status" class="policy-status" aria-live="polite"></p>
+        </section>
+        <div class="owner-access-note">This is a shared synthetic demo setting: it changes protection for the demo API and resets when the server restarts. Keycloak is not connected yet; in a real deployment only the organization owner could change this. Student portal users would not use it.</div>
       </section>
 
       <section id="threat-monitor" class="monitor workspace-page" data-page="threat-monitor" aria-labelledby="monitor-title">
@@ -814,11 +856,73 @@
       const integrationEvents = document.querySelector('#integration-events');
       const integrationCreated = document.querySelector('#integration-created');
       const integrationConnectionKey = document.querySelector('#integration-connection-key');
+      const policyOptions = document.querySelector('#policy-options');
+      const policyMode = document.querySelector('#policy-mode');
+      const policyMedium = document.querySelector('#policy-medium');
+      const policyHigh = document.querySelector('#policy-high');
+      const policyCritical = document.querySelector('#policy-critical');
+      const policyStatus = document.querySelector('#policy-status');
       let integrationAdminKey = null;
       let integrationDemoUnlocked = false;
       let currentConnectionKey = null;
       let selectedIntegrationAppId = null;
       let integrationRegistrationConfigured = false;
+
+      function renderSecurityPolicy(data, statusMessage = '') {
+        const active = data.activePolicy;
+        policyMode.textContent = `Active: ${active.label}`;
+        policyMedium.textContent = `${active.thresholds.medium}+`;
+        policyHigh.textContent = `${active.thresholds.high}+`;
+        policyCritical.textContent = `${active.thresholds.critical}+`;
+        policyOptions.replaceChildren();
+        data.policies.forEach((policy) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'policy-option';
+          button.dataset.policyId = policy.id;
+          button.setAttribute('aria-pressed', String(policy.id === active.id));
+          const title = document.createElement('strong');
+          title.textContent = policy.label;
+          const description = document.createElement('small');
+          description.textContent = policy.description;
+          button.append(title, description);
+          button.addEventListener('click', () => chooseSecurityPolicy(policy.id));
+          policyOptions.append(button);
+        });
+        policyStatus.textContent = statusMessage || `Shared demo policy. ${active.description}`;
+      }
+
+      async function loadSecurityPolicy() {
+        try {
+          const response = await fetch('/api/security-policy');
+          if (!response.ok) throw new Error('Could not load policy');
+          renderSecurityPolicy(await response.json());
+        } catch {
+          policyMode.textContent = 'Policy unavailable';
+          policyStatus.textContent = 'The security policy could not be loaded. Try refreshing the page.';
+        }
+      }
+
+      async function chooseSecurityPolicy(policyId) {
+        const buttons = [...policyOptions.querySelectorAll('button')];
+        buttons.forEach((button) => { button.disabled = true; });
+        policyStatus.textContent = 'Updating the shared demo policy…';
+        try {
+          const response = await fetch('/api/security-policy', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ policyId })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Could not update policy');
+          renderSecurityPolicy(data, `${data.activePolicy.label} is now active. The next demo API request uses these response bands.`);
+          refreshThreatMonitor();
+          refreshRequestActivity();
+        } catch (error) {
+          policyStatus.textContent = error.message;
+          buttons.forEach((button) => { button.disabled = false; });
+        }
+      }
 
       function selectedIntegrationConnector() {
         return document.querySelector('input[name="integration-connector"]:checked')?.value || null;
@@ -1754,6 +1858,7 @@
       }));
       refreshThreatMonitor();
       refreshRequestActivity();
+      loadSecurityPolicy();
       setInterval(() => {
         refreshThreatMonitor();
         refreshRequestActivity();

@@ -1,4 +1,5 @@
 const { activityOf, recordIdOf, sameApplication, isMonitoredActivity } = require('./event-contract');
+const { riskLevelForPolicy } = require('./security-policy');
 
 function recent(events, time, windowMs, predicate) {
   return events.filter((event) => {
@@ -28,10 +29,7 @@ function median(values) {
 }
 
 function riskLevel(score) {
-  if (score <= 30) return 'low';
-  if (score <= 60) return 'medium';
-  if (score <= 80) return 'high';
-  return 'critical';
+  return riskLevelForPolicy(score);
 }
 
 function scoreRisk(event, events) {

@@ -18,6 +18,7 @@ const { decideResponse, verifyChallenge, getResponseSummary, getResponseEvents }
 const { SCENARIOS, runLabScenario } = require('./lab-runner');
 const { createIntegrationRegistry } = require('./integration-registry');
 const { DEMO_APPLICATION_ID, normalizeIntegrationEvent } = require('./event-contract');
+const { getActivePolicy, listPolicies, setActivePolicy } = require('./security-policy');
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '127.0.0.1';
@@ -116,6 +117,19 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === 'GET' && url.pathname === '/api/health') {
       return sendJson(response, 200, { status: 'ok', service: 'chain-guard-demo-api' });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/security-policy') {
+      return sendJson(response, 200, { activePolicy: getActivePolicy(), policies: listPolicies(), mode: 'shared-demo' });
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/security-policy') {
+      const { policyId } = await readJson(request);
+      try {
+        return sendJson(response, 200, { activePolicy: setActivePolicy(policyId), policies: listPolicies(), mode: 'shared-demo' });
+      } catch (error) {
+        return sendJson(response, 400, { error: error.message });
+      }
     }
 
     if (request.method === 'GET' && url.pathname === '/api/integrations/status') {
