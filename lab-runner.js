@@ -4,6 +4,7 @@ const { getDetections } = require('./detection-engine');
 const { DEMO_APPLICATION_ID } = require('./event-contract');
 
 const SCENARIOS = new Set([
+  'legitimate-high-volume',
   'credential-stuffing',
   'enumeration',
   'scraping',
@@ -69,7 +70,14 @@ async function runLabScenario(type, port) {
     return response.data.token;
   };
 
-  if (type === 'credential-stuffing') {
+  if (type === 'legitimate-high-volume') {
+    // Many independent visitors create high total volume without any one
+    // visitor behaving abusively.
+    for (let index = 0; index < 50; index += 1) {
+      const visitor = ((runNumber * 53 + index) % 250) + 1;
+      await send('GET', '/api/products', { ip: `192.0.2.${visitor}` });
+    }
+  } else if (type === 'credential-stuffing') {
     for (let index = 1; index <= 5; index += 1) {
       await send('POST', '/api/login', {
         body: { email: `lab-target-${index}@demo.chain-guard.test`, password: 'wrong-demo-password' }
