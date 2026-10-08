@@ -79,9 +79,17 @@ def create_app(config=None):
     def home():
         return FileResponse(Path(__file__).with_name("index.html"))
 
+    @app.get("/favicon.svg", include_in_schema=False)
+    def favicon():
+        return FileResponse(Path(__file__).with_name("favicon.svg"), media_type="image/svg+xml")
+
     @app.get("/api/status")
     def status():
-        return {"portal": "fictional-student-portal", "chainGuardConfigured": connected}
+        return {
+            "portal": "fictional-student-portal",
+            "chainGuardConfigured": connected,
+            "dashboardUrl": config["CHAIN_GUARD_URL"].rstrip("/") + "/#integrations" if connected else None,
+        }
 
     @app.post("/api/login")
     def login(credentials: LoginRequest, request: Request):
