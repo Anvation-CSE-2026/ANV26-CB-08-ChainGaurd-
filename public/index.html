@@ -193,6 +193,15 @@
       .sidebar-close, .menu-button { display: none; }
       .sidebar-backdrop[hidden] { display: none; }
       .workspace { width: 100%; min-width: 0; max-width: none; padding: 0 34px 64px; border: 0; border-radius: 0; background: #0b1424; box-shadow: none; }
+      .workspace-page[hidden], .workspace-page-part[hidden] { display: none !important; }
+      .owner-access-panel { max-width: 820px; margin: 28px auto 0; padding: 30px; border: 1px solid #29456a; border-radius: 18px; background: #0f213b; }
+      .owner-access-panel h2 { margin: 6px 0 10px; font-size: clamp(1.55rem, 3vw, 2.15rem); }
+      .owner-access-panel p { max-width: 660px; }
+      .owner-flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
+      .owner-flow div { padding: 15px; border: 1px solid #29456a; border-radius: 12px; background: #102847; }
+      .owner-flow strong, .owner-flow small { display: block; }
+      .owner-flow small { margin-top: 6px; color: #91acc9; line-height: 1.45; }
+      .owner-access-note { margin-top: 20px; padding: 14px 16px; border-left: 3px solid #65d99a; border-radius: 8px; color: #a9cabb; background: #12352f; }
       .workspace-topbar { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 15px; min-height: 69px; margin: 0 -34px 28px; padding: 0 34px; border-bottom: 1px solid #243b5a; background: #0b1424ed; backdrop-filter: blur(15px); z-index: 20; }
       .topbar-left, .topbar-actions { display: flex; align-items: center; gap: 14px; }
       .topbar-path { color: #d1deec; font-size: .84rem; font-weight: 650; }
@@ -372,6 +381,10 @@
       body[data-theme="light"] .hero-core { border-color: #72be8b; color: #17613b; background: linear-gradient(150deg, #e5f6e9, #cfead8); box-shadow: 0 0 45px #16834a20; }
       body[data-theme="light"] .hero-caption { border-color: #b9d7c3; color: #3e7651; background: #fff; }
       body[data-theme="light"] .overview-stat, body[data-theme="light"] .lab-panel, body[data-theme="light"] .login-panel, body[data-theme="light"] .file-panel, body[data-theme="light"] .integrations-panel, body[data-theme="light"] .monitor { border-color: #d5e9dc; background: #fff; }
+      body[data-theme="light"] .owner-access-panel { border-color: #d5e9dc; background: #fff; }
+      body[data-theme="light"] .owner-flow div { border-color: #d5e9dc; background: #f8fcf9; }
+      body[data-theme="light"] .owner-flow small { color: #668471; }
+      body[data-theme="light"] .owner-access-note { color: #17613b; background: #eef9f1; }
       body[data-theme="light"] .integration-status { border-color: #b9d7c3; color: #17613b; background: #f4faf6; }
       body[data-theme="light"] .integration-status.error { border-color: #e5b1b5; color: #b42535; background: #fff1f2; }
       body[data-theme="light"] .connector-picker, body[data-theme="light"] .connector-option { border-color: #d5e9dc; background: #f8fcf9; }
@@ -453,6 +466,7 @@
         .file-row { align-items: start; flex-direction: column; }
         .file-actions { width: 100%; }
         .lab-card { padding: 14px; }
+        .owner-flow { grid-template-columns: 1fr; }
         .section-heading { display: block; }
         .section-tag { display: inline-block; margin-top: 12px; }
         .login-intro { display: block; }
@@ -475,6 +489,7 @@
           <a href="#login" class="side-link" data-section="login"><span aria-hidden="true">▣</span> Demo API</a>
           <a href="#file-storage" id="file-nav" class="side-link" data-section="file-storage" hidden><span aria-hidden="true">▤</span> File storage</a>
           <a href="#integrations" class="side-link" data-section="integrations"><span aria-hidden="true">◇</span> Integrations</a>
+          <a href="#owner-access" class="side-link" data-section="owner-access"><span aria-hidden="true">◉</span> Owner access</a>
           <div class="lab-menu">
             <div class="lab-menu-row">
               <a href="#lab" class="side-link" data-section="lab"><span aria-hidden="true">◈</span> Detection lab</a>
@@ -505,7 +520,7 @@
           <div class="topbar-actions"><span class="live-pill"><span class="online-dot"></span> Live demo</span><button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">Light theme</button></div>
         </header>
 
-        <section id="overview" class="overview" aria-labelledby="overview-title">
+        <section id="overview" class="overview workspace-page" data-page="overview" aria-labelledby="overview-title">
           <div class="overview-copy">
             <div class="eyebrow">API SECURITY · INTERACTIVE PROTOTYPE</div>
             <h1 id="overview-title">See abuse before it spreads.</h1>
@@ -514,14 +529,14 @@
           </div>
           <div class="hero-visual" aria-hidden="true"><div class="hero-ring"><div class="hero-core">CG</div></div><span class="hero-pulse pulse-one"></span><span class="hero-pulse pulse-two"></span><div class="hero-caption"><span class="online-dot"></span> Monitoring demo traffic</div></div>
         </section>
-        <div class="overview-stats" aria-label="Live security overview">
+        <div class="overview-stats workspace-page-part" data-page="overview" aria-label="Live security overview">
           <div class="overview-stat"><span>API requests scored</span><strong id="overview-requests">—</strong><small>Recent in-memory activity</small></div>
           <div class="overview-stat"><span>Threat alerts</span><strong id="overview-alerts">—</strong><small>Across five detectors</small></div>
           <div class="overview-stat"><span>Highest risk</span><strong id="overview-risk">—</strong><small>Out of 100</small></div>
           <div class="overview-stat"><span>Requests blocked</span><strong id="overview-blocks">—</strong><small>Critical responses</small></div>
         </div>
 
-        <section id="lab" class="lab-panel" aria-labelledby="lab-title">
+        <section id="lab" class="lab-panel workspace-page" data-page="lab" aria-labelledby="lab-title">
           <div class="section-heading"><div><div class="eyebrow">INTERACTIVE LAB</div><h2 id="lab-title">Run a safe attack scenario</h2><p>Each button sends synthetic requests through the demo API. Watch the detection, score, and response update below.</p></div><span class="section-tag">6 scenarios</span></div>
           <div class="lab-grid">
             <article id="lab-credential-stuffing" class="lab-card"><span class="lab-number">01 / ACCESS</span><h3>Credential stuffing</h3><p>Try several made-up accounts with wrong demo passwords.</p><button class="lab-run" type="button" data-scenario="credential-stuffing">Run simulation <span aria-hidden="true">→</span></button></article>
@@ -534,7 +549,7 @@
           <div id="lab-result" class="lab-result" aria-live="polite"><div class="lab-result-icon" aria-hidden="true">↗</div><div><strong>Ready when you are</strong><p>Choose any scenario above. The result will appear here and in the live monitor.</p></div></div>
         </section>
 
-      <section id="login" class="login-panel" aria-labelledby="login-title">
+      <section id="login" class="login-panel workspace-page" data-page="login" aria-labelledby="login-title">
       <div class="login-content">
       <div class="eyebrow">Chain Guard · Step 1</div>
       <div class="login-intro">
@@ -563,7 +578,7 @@
       </div>
       </section>
 
-      <section id="file-storage" class="file-panel" aria-labelledby="file-title" hidden>
+      <section id="file-storage" class="file-panel workspace-page" data-page="file-storage" aria-labelledby="file-title" hidden>
         <div class="file-heading">
           <div><div class="eyebrow">SIGNED-IN DEMO AREA</div><h2 id="file-title">File storage</h2><p>Add and download demo files on this device. Files are stored in this browser, not on the Chain Guard server.</p></div>
           <button id="file-sign-out" type="button">Sign out</button>
@@ -581,7 +596,7 @@
         <div id="file-list" class="file-list"></div>
       </section>
 
-      <section id="integrations" class="integrations-panel" aria-labelledby="integrations-title">
+      <section id="integrations" class="integrations-panel workspace-page" data-page="integrations" aria-labelledby="integrations-title">
         <div class="eyebrow">CONNECT AN APPLICATION · BUILD STAGE 7</div>
         <h2 id="integrations-title">Integrations</h2>
         <p>Explore a read-only fictional integration, or use a private owner key to register an app and inspect its synthetic security events.</p>
@@ -650,22 +665,34 @@
         </div>
       </section>
 
-      <section id="threat-monitor" class="monitor" aria-labelledby="monitor-title">
-        <div class="monitor-header">
+      <section id="owner-access" class="owner-access-panel workspace-page" data-page="owner-access" aria-labelledby="owner-access-title">
+        <div class="eyebrow">PRIVATE ORGANIZATION AREA</div>
+        <h2 id="owner-access-title">Owner access</h2>
+        <p>This page is for the organization owner only. When Keycloak is connected, you will sign in here before opening private integration settings and organization security data.</p>
+        <div class="owner-flow" aria-label="Owner access flow">
+          <div><strong>1. You sign in</strong><small>Use your organization owner account through Keycloak.</small></div>
+          <div><strong>2. Chain Guard verifies you</strong><small>It checks that you are allowed to manage this organization.</small></div>
+          <div><strong>3. Private pages unlock</strong><small>You can manage integrations and view your organization’s alerts.</small></div>
+        </div>
+        <div class="owner-access-note">Keycloak is not connected to this prototype yet. This page shows where the private owner sign-in will live; student portal users will not use it.</div>
+      </section>
+
+      <section id="threat-monitor" class="monitor workspace-page" data-page="threat-monitor" aria-labelledby="monitor-title">
+        <div class="monitor-header workspace-page-part" data-monitor-page="threat-monitor">
           <div>
             <div class="eyebrow">Chain Guard · Step 3</div>
             <h2 id="monitor-title">Live threat monitor</h2>
           </div>
           <button id="refresh-monitor" class="refresh" type="button">Refresh now</button>
         </div>
-        <p class="refresh-note">Detected abuse patterns from the fake demo API. Updates automatically every 5 seconds.</p>
-        <div class="metrics" aria-label="Detection summary">
+        <p class="refresh-note workspace-page-part" data-monitor-page="threat-monitor">Detected abuse patterns from the fake demo API. Updates automatically every 5 seconds.</p>
+        <div class="metrics workspace-page-part" data-monitor-page="threat-monitor" aria-label="Detection summary">
           <div class="metric"><span id="total-alerts" class="metric-value">—</span><span class="metric-label">Total alerts</span></div>
           <div class="metric"><span id="critical-alerts" class="metric-value">—</span><span class="metric-label">Critical detections</span></div>
           <div class="metric"><span id="high-alerts" class="metric-value">—</span><span class="metric-label">High detections</span></div>
           <div class="metric"><span id="abuse-types" class="metric-value">—</span><span class="metric-label">Abuse types found</span></div>
         </div>
-        <div id="risk-section" class="risk-overview" aria-label="Cumulative risk score summary">
+        <div id="risk-section" class="risk-overview workspace-page-part" data-monitor-page="risk-section" aria-label="Cumulative risk score summary">
           <div>
             <div class="eyebrow">Chain Guard · Step 4</div>
             <h3>Cumulative risk score</h3>
@@ -677,7 +704,7 @@
           </div>
           <div class="risk-meter" role="progressbar" aria-label="Latest risk score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="risk-meter-fill" class="risk-meter-fill"></div></div>
         </div>
-        <nav class="abuse-tabs" aria-label="Abuse type views">
+        <nav class="abuse-tabs workspace-page-part" data-monitor-page="threat-monitor" aria-label="Abuse type views">
           <a class="abuse-tab" href="#threat-monitor" data-view="all">All alerts <span class="tab-count" id="count-all">0</span></a>
           <a class="abuse-tab" href="#abuse-credential-stuffing" id="abuse-credential-stuffing" data-view="credential-stuffing">Credential stuffing <span class="tab-count" id="count-credential-stuffing">0</span></a>
           <a class="abuse-tab" href="#abuse-enumeration" id="abuse-enumeration" data-view="enumeration">Enumeration <span class="tab-count" id="count-enumeration">0</span></a>
@@ -685,13 +712,13 @@
           <a class="abuse-tab" href="#abuse-token-api-key-misuse" id="abuse-token-api-key-misuse" data-view="token-api-key-misuse">Token/API-key misuse <span class="tab-count" id="count-token-api-key-misuse">0</span></a>
           <a class="abuse-tab" href="#abuse-bot-automation-abuse" id="abuse-bot-automation-abuse" data-view="bot-automation-abuse">Bot/automation abuse <span class="tab-count" id="count-bot-automation-abuse">0</span></a>
         </nav>
-        <div id="tab-detail" class="tab-detail" aria-live="polite"></div>
-        <div class="alert-heading">
+        <div id="tab-detail" class="tab-detail workspace-page-part" data-monitor-page="threat-monitor" aria-live="polite"></div>
+        <div class="alert-heading workspace-page-part" data-monitor-page="threat-monitor">
           <h3 id="detection-heading">Recent detections</h3>
           <span id="last-updated" class="updated">Loading…</span>
         </div>
-        <div id="alert-list" class="alert-list" aria-live="polite"></div>
-        <section id="response-section" class="response-section" aria-labelledby="response-title">
+        <div id="alert-list" class="alert-list workspace-page-part" data-monitor-page="threat-monitor" aria-live="polite"></div>
+        <section id="response-section" class="response-section workspace-page-part" data-monitor-page="response-section" aria-labelledby="response-title">
           <div class="eyebrow">Chain Guard · Step 5</div>
           <h3 id="response-title">Security responses</h3>
           <p>Low risk is allowed. Medium risk is slowed. High risk needs demo verification. Critical risk is temporarily blocked and flagged for admin review.</p>
@@ -1259,7 +1286,46 @@
           link.classList.toggle('current', link.getAttribute('href') === hash);
         });
       }
+
+      function currentWorkspacePage() {
+        const hash = location.hash || '#overview';
+        if (hash.startsWith('#lab-')) return 'lab';
+        if (hash.startsWith('#abuse-')) return 'threat-monitor';
+        const page = hash.slice(1);
+        return ['overview', 'login', 'file-storage', 'integrations', 'owner-access', 'lab', 'threat-monitor', 'risk-section', 'response-section'].includes(page)
+          ? page
+          : 'overview';
+      }
+
+      function renderWorkspacePage() {
+        const page = currentWorkspacePage();
+        const monitorPage = ['threat-monitor', 'risk-section', 'response-section'].includes(page);
+        const titles = {
+          overview: 'Security overview',
+          login: 'Demo API',
+          'file-storage': 'File storage',
+          integrations: 'Integrations',
+          'owner-access': 'Owner access',
+          lab: 'Detection lab',
+          'threat-monitor': 'Threat monitor',
+          'risk-section': 'Risk score',
+          'response-section': 'Responses',
+        };
+        document.querySelector('.topbar-path').innerHTML = `Workspace <span>/</span> ${titles[page]}`;
+        document.querySelectorAll('.workspace-page').forEach((element) => {
+          const isTarget = element.dataset.page === page || (element.dataset.page === 'threat-monitor' && monitorPage);
+          element.hidden = !isTarget || (element.dataset.page === 'file-storage' && !activeFileOwner);
+        });
+        document.querySelectorAll('.workspace-page-part[data-page]').forEach((element) => {
+          element.hidden = element.dataset.page !== page;
+        });
+        document.querySelectorAll('.workspace-page-part[data-monitor-page]').forEach((element) => {
+          element.hidden = element.dataset.monitorPage !== page;
+        });
+      }
+
       updateSideNav();
+      renderWorkspacePage();
       if (location.hash === '#file-storage') {
         result.textContent = 'Sign in to open the demo file area in this browser.';
         location.replace('#login');
@@ -1595,8 +1661,10 @@
           location.replace('#login');
           return;
         }
+        renderWorkspacePage();
         renderActiveView();
         updateSideNav();
+        window.scrollTo({ top: 0, behavior: 'auto' });
       });
       abuseTabs.forEach((tab) => tab.addEventListener('click', () => {
         if (location.hash === tab.getAttribute('href')) renderActiveView();
