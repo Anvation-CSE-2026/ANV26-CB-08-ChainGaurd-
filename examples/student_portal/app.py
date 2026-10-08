@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 from chainguard_sdk import ChainGuardMiddleware
@@ -48,6 +48,11 @@ class SimulationRequest(BaseModel):
     scenario: str
 
 
+class GatewayVerification(BaseModel):
+    challengeId: str
+    answer: str
+
+
 def create_app(config=None):
     """Create an isolated portal; config may override environment for tests."""
     config = config if config is not None else os.environ
@@ -64,6 +69,8 @@ def create_app(config=None):
             "statusCode": event["statusCode"],
             "delivered": bool(result and result.get("accepted")),
             "risk": result.get("risk") if result else None,
+            "decisionRisk": result.get("decisionRisk", result.get("risk")) if result else None,
+            "gateway": result.get("gateway") if result else None,
             "detections": result.get("detections", []) if result else [],
         })
 
@@ -80,6 +87,9 @@ def create_app(config=None):
     if any(configured) and not all(configured):
         raise ValueError("Set all four Chain Guard connector settings together")
     connected = all(configured)
+    gateway_enabled = str(config.get("CHAIN_GUARD_GATEWAY_ENABLED", "false")).lower() == "true"
+    if gateway_enabled and not connected:
+        raise ValueError("Gateway mode requires all four Chain Guard connector settings")
 
     if connected:
         app.add_middleware(
@@ -93,6 +103,7 @@ def create_app(config=None):
             product_list_paths=("/api/courses",),
             record_pattern=r"/api/students/(?P<record_id>\d+)",
             on_event_result=capture_processing,
+            gateway_enabled=gateway_enabled,
         )
 
     def current_student(authorization):
@@ -114,8 +125,22 @@ def create_app(config=None):
     @app.get("/api/owner/activity")
     def owner_activity(x_portal_owner_key: str = Header(default="")):
         require_owner(x_portal_owner_key)
-        return {"connectorConfigured": connected, "events": list(processing_history),
-                "mode": "observe-only", "retention": "Latest 100 connector attempts; resets on portal restart."}
+        return JSONResponse({"connectorConfigured": connected, "events": list(processing_history),
+                "mode": "gateway" if gateway_enabled else "observe-only", "retention": "Latest 100 connector attempts; resets on portal restart."}, headers={"Cache-Control": "no-store"})
+
+    @app.post("/api/gateway/verify")
+    async def gateway_verify(payload: GatewayVerification, request: Request):
+        if not gateway_enabled:
+            raise HTTPException(503, "Gateway verification is not enabled.")
+        connector = ChainGuardMiddleware(app, server_url=config["CHAIN_GUARD_URL"],
+                                        app_id=config["CHAIN_GUARD_APP_ID"], app_key=config["CHAIN_GUARD_APP_KEY"],
+                                        identity_secret=config["CHAIN_GUARD_IDENTITY_SECRET"])
+        try:
+            result = await asyncio.to_thread(connector._post_json, config["CHAIN_GUARD_URL"].rstrip("/") + "/api/v1/gateway/verify",
+                                            {"event": connector._event({**request.scope, "path": "/connected-verification"}, 200), "challengeId": payload.challengeId, "answer": payload.answer})
+        except Exception:
+            raise HTTPException(400, "Verification failed or gateway unavailable. Try the current question again.")
+        return result
 
     @app.post("/api/owner/simulations")
     async def simulate(payload: SimulationRequest, x_portal_owner_key: str = Header(default="")):
@@ -127,17 +152,25 @@ def create_app(config=None):
             raise HTTPException(409, "A test is already running. Try again when it finishes.")
         async with simulation_lock:
             # In-process HTTP uses the actual app routes and connector. No user-supplied target.
-            transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 46000))
+            # Separate benchmark-range identity per owner run: do not block real students during tests.
+            transport = httpx.ASGITransport(app=app, client=(f"198.18.{secrets.randbelow(256)}.{secrets.randbelow(254) + 1}", 46000))
             async with httpx.AsyncClient(transport=transport, base_url="http://portal.test", headers={"User-Agent": "Northstar-Owner-Test"}) as client:
                 count = 0
                 demo_token = None
+                decisions = {"allowed": 0, "rateLimited": 0, "verificationRequired": 0, "blocked": 0, "unavailable": 0}
 
                 async def send(method, path, expected=200, **kwargs):
                     nonlocal count
                     response = await client.request(method, path, **kwargs)
                     count += 1
+                    if response.status_code in (403, 428, 429, 503) and "gateway" in response.json():
+                        action = response.json()["gateway"]["action"]
+                        field = {"block": "blocked", "step-up": "verificationRequired", "rate-limit": "rateLimited", "unavailable": "unavailable"}[action]
+                        decisions[field] += 1
+                        return response
                     if response.status_code != expected:
                         raise HTTPException(500, "The fictional test could not finish.")
+                    decisions["allowed"] += 1
                     return response
 
                 for kind in kinds if payload.scenario == "combined" else (payload.scenario,):
@@ -147,6 +180,8 @@ def create_app(config=None):
                     elif kind in ("enumeration", "token"):
                         if demo_token is None:
                             response = await send("POST", "/api/login", json={"username": "student1001", "password": DEMO_PASSWORD})
+                            if response.status_code != 200:
+                                continue
                             demo_token = response.json()["token"]
                         paths = [f"/api/students/{number}" for number in range(1001, 1005)] if kind == "enumeration" else ["/api/students"] * 50
                         for path in paths:
@@ -155,6 +190,7 @@ def create_app(config=None):
                         for _ in range(20 if kind == "scraping" else 12):
                             await send("GET", "/api/courses")
                 return {"scenario": payload.scenario, "requestsSent": count, "connectorConfigured": connected,
+                        "decisions": decisions,
                         "message": "Test requests completed. Check Chain Guard Integrations for delivered events." if connected else "Test requests completed, but no Chain Guard connector is configured."}
 
     @app.get("/favicon.svg", include_in_schema=False)
@@ -166,6 +202,7 @@ def create_app(config=None):
         return {
             "portal": "fictional-student-portal",
             "chainGuardConfigured": connected,
+            "gatewayEnabled": gateway_enabled,
             "dashboardUrl": config["CHAIN_GUARD_URL"].rstrip("/") + "/#integrations" if connected else None,
         }
 

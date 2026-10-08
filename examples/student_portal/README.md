@@ -56,11 +56,34 @@ Chain Guard on `http://127.0.0.1:3100/` and this portal on
 local-only keys, and prints the owner key for the Chain Guard Integrations
 screen. Keep that terminal open. Press Ctrl+C to stop both processes.
 The same generated local-only key opens tests at `http://127.0.0.1:8000/owner`.
-The top-right server icon opens this backend dashboard. Unlock it to view
-the last 100 connector attempts, confirmed delivery, actual scoring responses,
-new detections, and signal points. These details are not available without
-the portal owner key. The connector is observe-only and does not block portal
-requests. History resets on portal restart; it is not database storage.
+The top-right server icon opens the owner gateway dashboard. Unlock it to view
+the last 100 attempts, pre-request decisions, confirmed delivery, actual scoring
+responses, new detections, and signal points. These details require the portal
+owner key. History resets on portal restart; it is not database storage.
+
+### Gateway protection
+
+The connected-demo launcher enables `CHAIN_GUARD_GATEWAY_ENABLED=true`.
+For a manually started portal, set that variable alongside all four connector
+settings to enable enforcement. With it unset, the SDK retains observation mode.
+
+The middleware sends pseudonymous request metadata to the authenticated
+`/api/v1/gateway/check` endpoint before login, course, roster, and record handlers
+run. Chain Guard evaluates current metadata against observed history. Allowed
+requests continue to the handler; rate limited (429), verification-needed (428),
+and blocked (403) requests do not. If Chain Guard cannot be contacted, the portal
+fails closed with 503. Static pages, status, owner controls, and challenge
+verification remain reachable. Denied attempts are recorded by Chain Guard;
+allowed request outcomes are reported after the portal responds, so real login
+failures are learned without sending password bodies to Chain Guard.
+
+This is an application middleware gateway, not a separate reverse proxy or a
+production WAF. High-risk verification uses the existing demo math challenge,
+not CAPTCHA or MFA. Owner access remains a private demo key, not Keycloak.
+The student page offers the challenge and lets the student retry after solving
+it. The active shared demo policy controls bands; critical blocks expire after
+two minutes. Owner test runs use isolated benchmark-range client identities.
+No real student credentials, third-party targets, or cloud infrastructure are used.
 
 The launcher looks for the Python environment used in this workspace at
 `work/fastapi-verify`, then `.venv`. If you installed the dependencies

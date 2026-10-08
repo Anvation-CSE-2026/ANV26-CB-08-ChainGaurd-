@@ -1,17 +1,22 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Northstar · Owner test lab</title>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Northstar · Chain Guard gateway</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f1f6f3;color:#17352a;font:16px/1.5 system-ui,sans-serif}main{max-width:1050px;margin:40px auto;padding:28px;background:white;border:1px solid #c5dfcc;border-radius:18px}h1{margin:8px 0}label{display:block;font-weight:700;margin:20px 0 8px}input{width:100%;padding:14px;border:1px solid #bdd3c4;border-radius:10px;font:inherit}button{padding:14px;border:1px solid #b8dbc4;background:#edf8f0;color:#17603b;border-radius:10px;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:wait}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:24px}#result{padding:18px;background:#eef8f1;border-radius:12px;margin-top:20px}a{color:#118450}p{color:#526c5c}@media(max-width:600px){main{margin:12px}.grid{grid-template-columns:1fr}}
 </style></head>
-<body><main><a href="/">← Student portal</a><p>PRIVATE OWNER AREA</p><h1>Backend dashboard</h1><p>See actual portal requests, connector delivery, Chain Guard risk scores, and detected behaviors. Only the owner can unlock these details.</p>
+<body><main><style>
+main{max-width:1200px;padding:32px}h1{font-size:clamp(1.8rem,4vw,2.8rem);letter-spacing:-.04em}h2{margin:28px 0 10px}#unlock{background:#118450;color:white;margin-bottom:20px}.flow{display:grid;grid-template-columns:1fr auto 1.2fr auto 1fr;gap:15px;align-items:center;margin:26px 0}.flow-card{padding:24px;border:1px solid #c5dfcc;border-radius:14px;background:#f5faf7}.flow-card b{display:block;font-size:1.1rem}.flow-card small{display:block;margin-top:8px;color:#526c5c}.flow-card.guard{background:#103d2b;color:white;border-color:#103d2b}.flow-card.guard small{color:#bfdfcc}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{padding:18px;border:1px solid #c5dfcc;border-radius:12px;background:#f8fcf9}.metric b{display:block;font-size:1.8rem}.metric span{color:#526c5c;font-size:.85rem}summary{cursor:pointer;font-weight:650;line-height:1.6}details p{font-size:.9rem}#mode{padding:12px;background:#edf8f0;border-radius:10px}.test-area{margin-top:30px;padding:20px;background:#f7faf8;border:1px solid #c5dfcc;border-radius:14px}.auth-note{font-size:.9rem}#auth{max-width:650px}#result[data-error="true"]{background:#fff0ed;color:#9d342d}@media(max-width:650px){main{padding:20px}.metrics{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:1fr}.flow-arrow{text-align:center;transform:rotate(90deg)}}
+</style><a href="/">← Back to student portal</a><p>OWNER CONTROL ROOM · FICTIONAL DEMO</p><h1>Chain Guard security gateway</h1><p>Students use Northstar. Chain Guard works in the middle, checking each protected request before it reaches the portal.</p>
+<div class="flow" aria-label="Student request, then Chain Guard security check, then portal backend"><div class="flow-card"><b>1. Student request</b><small>Sign in, browse courses, or open a record</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-card guard"><b>2. Chain Guard</b><small>Check behavior and risk · Allow or intervene</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-card"><b>3. Portal backend</b><small>Only approved requests reach protected handlers</small></div></div>
+<div id="auth">
 <label for="key">Portal owner key</label><input id="key" type="password" autocomplete="off" placeholder="Enter your private portal owner key"><p>The key stays in this tab's memory. It is not saved in browser storage.</p>
-<button id="unlock" type="button">Unlock backend dashboard</button>
-<section id="working" hidden><h2>How Chain Guard is working</h2><p>1. Portal handles the request → 2. Connector removes raw identities → 3. Chain Guard receives the event → 4. Detectors check behavior → 5. Risk score and alerts return.</p><p>This connector observes activity. It does not enforce blocks on the student portal.</p><button id="refresh" type="button">Refresh activity</button><p id="activity-status" role="status"></p><div id="activity"></div><p>Latest 100 connector attempts are held in portal memory and reset on restart. Failed delivery is shown without inventing a risk score.</p></section>
-<h2>Security test lab</h2>
+<button id="unlock" type="button">Unlock owner dashboard</button></div><button id="lock" type="button" hidden>Lock owner dashboard</button>
+<details class="test-area" id="test-area" hidden><summary>Test the gateway · Owner only</summary><p>Send fictional traffic through the same security checkpoint. Each run uses a separate fictional visitor identity. All runs share the prototype’s demo capacity limit.</p>
 <div class="grid" id="tests">
 <button data-scenario="stuffing">Failed logins</button><button data-scenario="enumeration">Sequential records</button><button data-scenario="scraping">Fast listings</button><button data-scenario="token">Token overuse</button><button data-scenario="bot">Rapid automation</button><button data-scenario="combined">Run combined test →</button>
-</div><div id="result" role="status" aria-live="polite">Enter the owner key, then choose a test.</div><p>Only synthetic data is used. Connector delivery is best effort; completion does not guarantee that Chain Guard received every event.</p><a id="dashboard" hidden>Open Chain Guard Integrations →</a></main>
+</div></details>
+<section id="working" hidden><p id="mode" role="status"></p><div class="metrics"><div class="metric"><b id="allowed-count">0</b><span>Allowed through</span></div><div class="metric"><b id="limited-count">0</b><span>Rate limited</span></div><div class="metric"><b id="verify-count">0</b><span>Verification needed</span></div><div class="metric"><b id="blocked-count">0</b><span>Blocked</span></div></div><h2>Live gateway decisions</h2><p>Open a request to see why it passed or was stopped. Counts cover the latest 100 attempts, not lifetime totals.</p><button id="refresh" type="button">Refresh activity</button><p id="activity-status" role="status"></p><div id="activity"></div><p class="auth-note">History resets on restart. If Chain Guard is unavailable, protected requests are stopped with a temporary service error; the dashboard shows this separately from a security block.</p></section>
+<div id="result" role="status" aria-live="polite">Unlock with your owner key to view gateway activity.</div><p class="auth-note">Prototype only · Synthetic data · This is not a production API gateway.</p><a id="dashboard" hidden>Open full Chain Guard dashboard →</a></main>
 <script>
 const result=document.getElementById('result');
 let ownerKey='';
@@ -21,30 +26,39 @@ testButtons.forEach(b=>b.disabled=true);
 async function refreshActivity(){
  const response=await fetch('/api/owner/activity',{headers:{'X-Portal-Owner-Key':ownerKey}});
  const data=await response.json();if(!response.ok)throw Error(data.detail||'Could not load backend activity');
- const list=document.getElementById('activity');list.replaceChildren();
- document.getElementById('activity-status').textContent=`${data.connectorConfigured?'Connector configured':'Connector not configured'} · ${data.events.length} recent attempts · Updated ${new Date().toLocaleTimeString()}`;
+ const list=document.getElementById('activity');const openRows=new Set([...list.querySelectorAll('details[open]')].map(row=>row.dataset.time));list.replaceChildren();
+ document.getElementById('mode').textContent=data.mode==='gateway'?'Gateway active: requests are checked BEFORE the portal backend handles them.':'Observation mode only: pre-request protection is not enabled on this server.';
+ const counts={allow:0,'rate-limit':0,'step-up':0,block:0};for(const event of data.events){if(event.gateway?.action in counts)counts[event.gateway.action]++;}
+ for(const [id,action] of [['allowed-count','allow'],['limited-count','rate-limit'],['verify-count','step-up'],['blocked-count','block']])document.getElementById(id).textContent=counts[action];
+ document.getElementById('activity-status').textContent=`${data.connectorConfigured?'Connector configured':'Connector not configured'} · ${data.events.length} recent attempts · Showing latest ${Math.min(data.events.length,20)} · Updated ${new Date().toLocaleTimeString()}`;
  if(!data.events.length){const p=document.createElement('p');p.textContent='No connector attempts yet. Use the student portal or run an owner test.';list.append(p);}
- for(const event of data.events){
+ for(const event of data.events.slice(0,20)){
   const details=document.createElement('details');details.style.cssText='padding:14px;border:1px solid #c5dfcc;border-radius:10px;margin-top:10px';
-  const summary=document.createElement('summary');summary.textContent=`${event.method} · ${event.activity} · HTTP ${event.statusCode} · ${event.delivered?'Received by Chain Guard':'Delivery not confirmed'} · ${event.risk?event.risk.score+'/100':'Risk unavailable'}`;details.append(summary);
+  details.dataset.time=event.timestamp;details.open=openRows.has(event.timestamp);
+  const names={'allow':'Allowed through','rate-limit':'Rate limited','step-up':'Verification needed','block':'Blocked','unavailable':'Gateway unavailable'};
+  const score=event.decisionRisk||event.risk;
+  const summary=document.createElement('summary');summary.textContent=`${names[event.gateway?.action]||'Observed'} · ${event.activity.replaceAll('-',' ')} · ${score?score.score+'/100':'Risk unavailable'}`;details.append(summary);
+  const route=document.createElement('p');route.textContent=event.gateway?.action==='allow'?`Student → Chain Guard approved → Portal handled request (HTTP ${event.statusCode})`:event.gateway?`Student → Chain Guard stopped request → Portal handler NOT reached (HTTP ${event.statusCode})`:`Portal → Connector observation (HTTP ${event.statusCode})`;details.append(route);
+  if(event.gateway){const why=document.createElement('p');why.textContent='Why: '+event.gateway.reason;details.append(why);}
   const line=document.createElement('p');line.textContent=`Observed ${new Date(event.timestamp).toLocaleString()}. ${event.risk?'Risk level: '+event.risk.level+'.':'No scoring response received.'}`;details.append(line);
-  for(const factor of event.risk?.factors||[]){const p=document.createElement('p');p.textContent=`Signal: ${factor.label||factor.type||factor.reason||factor.signal||'Behavior signal'} · +${factor.points} points`;details.append(p);}
+  for(const factor of score?.factors||[]){const p=document.createElement('p');p.textContent=`+${factor.points} points · ${factor.reason||factor.type}`;details.append(p);}
   const alerts=document.createElement('p');alerts.textContent=event.detections.length?'New detections: '+event.detections.map(d=>`${d.type} (${d.severity})`).join(', '):'No new detection alert returned for this request.';details.append(alerts);list.append(details);
  }
 }
 document.getElementById('unlock').addEventListener('click',async()=>{
  ownerKey=document.getElementById('key').value;
- try{await refreshActivity();working.hidden=false;testButtons.forEach(b=>b.disabled=false);result.textContent='Owner access verified. Choose a test or review live activity.';document.getElementById('key').value='';}
- catch(error){ownerKey='';working.hidden=true;testButtons.forEach(b=>b.disabled=true);result.textContent=error.message;}
+ try{await refreshActivity();working.hidden=false;document.getElementById('auth').hidden=true;document.getElementById('lock').hidden=false;document.getElementById('test-area').hidden=false;testButtons.forEach(b=>b.disabled=false);result.dataset.error='false';result.textContent='Owner access verified. Your gateway activity is shown above.';document.getElementById('key').value='';}
+ catch(error){ownerKey='';working.hidden=true;document.getElementById('test-area').hidden=true;testButtons.forEach(b=>b.disabled=true);result.dataset.error='true';result.textContent=error.message;}
 });
 document.getElementById('key').addEventListener('keydown',event=>{if(event.key==='Enter')document.getElementById('unlock').click();});
+document.getElementById('lock').addEventListener('click',()=>{ownerKey='';working.hidden=true;document.getElementById('test-area').hidden=true;document.getElementById('auth').hidden=false;document.getElementById('lock').hidden=true;document.getElementById('activity').replaceChildren();testButtons.forEach(b=>b.disabled=true);result.textContent='Dashboard locked. Enter the owner key to open it again.';});
 document.getElementById('refresh').addEventListener('click',()=>refreshActivity().catch(error=>{document.getElementById('activity-status').textContent=error.message;}));
 setInterval(()=>{if(ownerKey&&!working.hidden)refreshActivity().catch(error=>{document.getElementById('activity-status').textContent=error.message;});},5000);
 document.getElementById('tests').addEventListener('click',async event=>{
  const button=event.target.closest('button[data-scenario]');if(!button)return;
  const key=ownerKey;if(!key){result.textContent='Unlock the backend dashboard first.';return;}
  const buttons=document.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);result.textContent='Running the fictional test in the portal backend…';
- try{const response=await fetch('/api/owner/simulations',{method:'POST',headers:{'Content-Type':'application/json','X-Portal-Owner-Key':key},body:JSON.stringify({scenario:button.dataset.scenario})});const data=await response.json();if(!response.ok)throw Error(data.detail||'Test failed');result.textContent=`${data.requestsSent} actual portal requests completed. ${data.message}`;await refreshActivity();}catch(error){result.textContent=error.message;}finally{buttons.forEach(b=>b.disabled=false);}
+ try{const response=await fetch('/api/owner/simulations',{method:'POST',headers:{'Content-Type':'application/json','X-Portal-Owner-Key':key},body:JSON.stringify({scenario:button.dataset.scenario})});const data=await response.json();if(!response.ok)throw Error(data.detail||'Test failed');const d=data.decisions;result.textContent=`Test finished: ${data.requestsSent} requests · ${d.allowed} allowed through · ${d.rateLimited} rate limited · ${d.verificationRequired} verification needed · ${d.blocked} blocked · ${d.unavailable} gateway unavailable.`;await refreshActivity();}catch(error){result.textContent=error.message;}finally{buttons.forEach(b=>b.disabled=false);}
 });
 fetch('/api/status').then(r=>r.json()).then(data=>{if(data.dashboardUrl){const link=document.getElementById('dashboard');link.href=data.dashboardUrl;link.hidden=false;}}).catch(()=>{});
 </script></body></html>

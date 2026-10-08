@@ -1,0 +1,43 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+process.env.CHAIN_GUARD_ADMIN_KEY = 'gateway-owner-' + 'x'.repeat(32);
+const { server } = require('../server');
+
+test('authenticated gateway checks allow, verification, rate limits, blocks and app isolation', async t => {
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const post = (path, body, headers = {}) => fetch(base + path, { method: 'POST', headers: {'Content-Type': 'application/json', ...headers}, body: JSON.stringify(body) });
+  const register = async name => {
+    const app = await (await post('/api/integrations/apps', { name }, {'X-Chain-Guard-Admin-Key': process.env.CHAIN_GUARD_ADMIN_KEY})).json();
+    return {'X-Chain-Guard-App-Id': app.application.id, 'X-Chain-Guard-App-Key': app.connectionKey};
+  };
+  const headers = await register('Gateway test');
+  const event = (clientId, extra = {}) => ({activity:'user-list', method:'GET', statusCode:200, device:'desktop-browser', clientId, ...extra});
+  const check = async (e, extra = {}, h = headers) => (await post('/api/v1/gateway/check', {event:e, ...extra}, h)).json();
+  assert.equal((await post('/api/v1/gateway/check', {event:event('normal-client')})).status, 401);
+  assert.equal((await check(event('normal-client'))).allowed, true);
+  const token = 'a'.repeat(64);
+  await post('/api/v1/events', event('other-client', {sessionFingerprint:token}), headers);
+  for(let id=1001;id<=1004;id++) await post('/api/v1/events', event('high-client', {activity:'user-record',recordId:String(id),sessionFingerprint:token}), headers);
+  const highEvent = event('high-client', {sessionFingerprint:token});
+  const high = await check(highEvent);
+  assert.equal(high.decision.action, 'step-up');
+  assert.equal(high.allowed, false);
+  const numbers = high.decision.challenge.question.match(/\d+/g).map(Number);
+  const verify = await (await post('/api/v1/gateway/verify', {event:highEvent,challengeId:high.decision.challenge.id,answer:numbers[0]+numbers[1]}, headers)).json();
+  assert.equal(verify.ok, true);
+  assert.equal((await check(highEvent, {verificationToken:verify.token})).allowed, true);
+  for(let i=0;i<20;i++) await post('/api/v1/events', event('burst-client',{activity:'product-list'}), headers);
+  const first = await check(event('burst-client',{activity:'product-list'}));
+  assert.equal(first.risk.level, 'medium');
+  assert.equal(first.allowed,true);
+  assert.equal((await check(event('burst-client',{activity:'product-list'}))).decision.action,'rate-limit');
+  for(let i=0;i<20;i++) await post('/api/v1/events', event('high-client',{activity:'product-list',sessionFingerprint:token}),headers);
+  const blocked = await check(highEvent);
+  assert.equal(blocked.decision.action,'block');
+  assert.ok(blocked.decision.blockedUntil > Date.now());
+  assert.equal((await check(highEvent,{verificationToken:verify.token})).allowed,false);
+  const otherApp = await register('Isolated gateway');
+  assert.equal((await check(highEvent,{},otherApp)).allowed,true);
+});

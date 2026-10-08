@@ -109,6 +109,7 @@
       <div class="intro-content"><div class="eyebrow">CHAIN GUARD / EXTERNAL APPLICATION</div><h1 id="portal-title">Student Portal</h1><p>Explore a real connection between this independent fictional app and Chain Guard. Sign in, view demo records, then test how suspicious behavior appears in the security dashboard.</p></div>
       <div class="intro-side"><div id="connection" class="status" role="status">Checking connection</div><a id="dashboard-link" class="dashboard-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Open Chain Guard dashboard ↗</a><a class="dashboard-link" href="/owner" target="_blank" rel="noopener noreferrer">Open backend dashboard ↗ · Owner only</a></div>
     </section>
+    <div id="gateway-notice" class="notice" role="status" hidden><span id="gateway-notice-text"></span><button id="gateway-verify" class="secondary" type="button" hidden>Complete demo verification</button></div>
     <div class="layout">
       <section class="card" aria-labelledby="login-title">
         <h2 id="login-title">Demo sign in</h2><p class="small">Use a fictional account only.</p>
@@ -133,15 +134,48 @@
   </main>
   <script>
     let token = '';
+    let verificationToken = '';
+    let pendingChallenge = null;
+    let challengeAuthorization = '';
     const byId = id => document.getElementById(id);
     const message = (id, text, error = false) => { const el = byId(id); el.textContent = text; el.classList.toggle('error', error); };
+    async function portalFetch(path, options = {}) {
+      const headers = { ...(options.headers || {}) };
+      if (verificationToken) headers['X-Demo-Verification'] = verificationToken;
+      const response = await fetch(path, { ...options, headers });
+      if ([403, 428, 429, 503].includes(response.status)) {
+        const data = await response.clone().json().catch(() => ({}));
+        if (data.gateway) {
+          byId('gateway-notice').hidden = false;
+          byId('gateway-notice-text').textContent = data.detail + (data.gateway.retryAfterSeconds ? ` Retry after ${data.gateway.retryAfterSeconds} seconds.` : '');
+          pendingChallenge = data.gateway.challenge || null;
+          challengeAuthorization = headers.Authorization || '';
+          byId('gateway-verify').hidden = !pendingChallenge;
+        }
+      }
+      return response;
+    }
+    byId('gateway-verify').addEventListener('click', async () => {
+      if (!pendingChallenge) return;
+      const answer = prompt(pendingChallenge.question);
+      if (answer === null) return;
+      try {
+        const response = await fetch('/api/gateway/verify', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: challengeAuthorization }, body: JSON.stringify({ challengeId: pendingChallenge.id, answer }) });
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw Error(data.detail || 'Verification failed. Try again.');
+        verificationToken = data.token;
+        pendingChallenge = null;
+        byId('gateway-verify').hidden = true;
+        byId('gateway-notice-text').textContent = 'Demo verification passed. Try your previous action again.';
+      } catch (error) { byId('gateway-notice-text').textContent = error.message; }
+    });
 
     async function loadStatus() {
       try {
         const response = await fetch('/api/status');
         const data = await response.json();
         const badge = byId('connection');
-        badge.textContent = data.chainGuardConfigured ? 'Chain Guard connector configured' : 'Not connected to Chain Guard';
+        badge.textContent = data.gatewayEnabled ? 'Chain Guard gateway active' : data.chainGuardConfigured ? 'Chain Guard observation configured' : 'Not connected to Chain Guard';
         badge.classList.toggle('connected', data.chainGuardConfigured);
         const dashboardLink = byId('dashboard-link');
         dashboardLink.hidden = !data.dashboardUrl;
@@ -152,7 +186,7 @@
     byId('login-form').addEventListener('submit', async event => {
       event.preventDefault();
       try {
-        const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: byId('username').value, password: byId('password').value }) });
+        const response = await portalFetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: byId('username').value, password: byId('password').value }) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.detail || 'Sign in failed');
         token = data.token;
@@ -164,7 +198,7 @@
     async function loadRoster() {
       if (!token) return message('roster-message', 'Sign in before loading the roster.', true);
       try {
-        const response = await fetch('/api/students', { headers: { Authorization: `Bearer ${token}` } });
+        const response = await portalFetch('/api/students', { headers: { Authorization: `Bearer ${token}` } });
         if (!response.ok) throw new Error('Could not load demo roster');
         const data = await response.json();
         const roster = byId('roster'); roster.replaceChildren();
@@ -182,7 +216,7 @@
 
     async function loadRecord(id) {
       try {
-        const response = await fetch(`/api/students/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${token}` } });
+        const response = await portalFetch(`/api/students/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${token}` } });
         if (!response.ok) throw new Error('Could not load demo record');
         const student = await response.json();
         const record = byId('record'); record.replaceChildren();
@@ -194,7 +228,7 @@
 
     async function loadCourses() {
       try {
-        const response = await fetch('/api/courses'); const data = await response.json();
+        const response = await portalFetch('/api/courses'); if (!response.ok) throw Error('Course request was not allowed'); const data = await response.json();
         for (const course of data.courses) {
           const row = document.createElement('div'); row.className = 'course';
           const code = document.createElement('code'); code.textContent = course.code;

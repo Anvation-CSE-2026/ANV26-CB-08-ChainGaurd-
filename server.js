@@ -199,6 +199,39 @@ const server = http.createServer(async (request, response) => {
       });
     }
 
+    if (request.method === 'POST' && ['/api/v1/gateway/check', '/api/v1/gateway/verify'].includes(url.pathname)) {
+      const applicationId = request.headers['x-chain-guard-app-id'];
+      if (!integrationRegistry.authenticatesApplication(applicationId, request.headers['x-chain-guard-app-key'])) {
+        return sendJson(response, 401, { error: 'A valid application connection is required.' });
+      }
+      if (String(request.headers['content-type'] || '').split(';')[0].trim().toLowerCase() !== 'application/json') {
+        return sendJson(response, 415, { error: 'Send JSON.' });
+      }
+      if (!integrationRegistry.allowEvent(applicationId)) return sendJson(response, 429, { error: 'Gateway capacity reached.' });
+      const body = await readJson(request, 8192);
+      let event;
+      try { event = normalizeIntegrationEvent(body.event, applicationId); }
+      catch (error) { return sendJson(response, 422, { error: error.message }); }
+      // Login outcomes are only known after the portal handles them. Preflight must not invent failures.
+      if (event.activity === 'login') event.outcome = 'login-approved';
+      if (url.pathname.endsWith('/verify')) {
+        const result = verifyChallenge(event, body.challengeId, body.answer);
+        return sendJson(response, result.ok ? 200 : 400, result);
+      }
+      const risk = scoreRisk(event, [event, ...getRecentEvents(500, applicationId)]);
+      const decision = decideResponse({ headers: { 'x-demo-verification': body.verificationToken } }, event, risk);
+      let detections = [];
+      if (decision.action !== 'allow') {
+        event.statusCode = decision.status;
+        event.security = { ...decision, decisionScore: risk.score, decisionLevel: risk.level, factors: risk.factors, policy: getActivePolicy() };
+        recordEvent(event);
+        detections = analyzeObservedEvent(event, getRecentEvents(500, applicationId)).detections;
+        integrationRegistry.recordEvent(applicationId, event.timestamp);
+      }
+      return sendJson(response, 200, { accepted: true, allowed: decision.action === 'allow', decision, risk,
+        detections: detections.map(({ type, severity }) => ({ type, severity })) });
+    }
+
     if (request.method === 'POST' && url.pathname === '/api/v1/events') {
       const applicationId = request.headers['x-chain-guard-app-id'];
       if (!integrationRegistry.authenticatesApplication(applicationId, request.headers['x-chain-guard-app-key'])) {

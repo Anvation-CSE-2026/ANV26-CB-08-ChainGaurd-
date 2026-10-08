@@ -27,7 +27,7 @@ class ChainGuardMiddleware:
     def __init__(
         self, app, *, server_url, app_id, app_key, identity_secret,
         login_paths=("/login",), user_list_paths=(), product_list_paths=(),
-        record_pattern=None, timeout=0.75, on_event_result=None,
+        record_pattern=None, timeout=0.75, on_event_result=None, gateway_enabled=False,
     ):
         if len(identity_secret) < 32:
             raise ValueError("identity_secret must be at least 32 characters")
@@ -51,12 +51,44 @@ class ChainGuardMiddleware:
         self.record_pattern = re.compile(record_pattern) if record_pattern else None
         self.timeout = float(timeout)
         self.on_event_result = on_event_result
+        self.gateway_enabled = gateway_enabled
+        self.gateway_url = server_url.rstrip("/") + "/api/v1/gateway/check"
         if self.timeout <= 0:
             raise ValueError("timeout must be positive")
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
+        path = scope.get("path", "")
+        protected = path in self.login_paths or path in self.user_list_paths or path in self.product_list_paths or bool(self.record_pattern and self.record_pattern.fullmatch(path))
+        if self.gateway_enabled and not protected:
+            return await self.app(scope, receive, send)
+        gateway_result = None
+        if self.gateway_enabled and protected:
+            event = self._event(scope, 200)
+            headers = dict(scope.get("headers", ()))
+            try:
+                gateway_result = await asyncio.to_thread(self._post_json, self.gateway_url, {
+                    "event": event,
+                    "verificationToken": headers.get(b"x-demo-verification", b"").decode("utf-8", "ignore"),
+                })
+                if not isinstance(gateway_result, dict) or "allowed" not in gateway_result:
+                    raise ValueError("Invalid gateway response")
+            except Exception:
+                gateway_result = {"accepted": False, "allowed": False, "risk": None, "decision": {
+                    "action": "unavailable", "status": 503, "reason": "Security gateway unavailable. Please try again shortly."}}
+            if not gateway_result["allowed"]:
+                decision = gateway_result["decision"]
+                event["statusCode"] = decision["status"]
+                if self.on_event_result:
+                    self.on_event_result(event, {**gateway_result, "gateway": decision})
+                payload = json.dumps({"detail": decision["reason"], "gateway": decision}).encode()
+                response_headers = [(b"content-type", b"application/json"), (b"cache-control", b"no-store")]
+                if decision.get("retryAfterSeconds"):
+                    response_headers.append((b"retry-after", str(decision["retryAfterSeconds"]).encode()))
+                await send({"type": "http.response.start", "status": decision["status"], "headers": response_headers})
+                await send({"type": "http.response.body", "body": payload})
+                return  # The protected app handler is never called.
         status = None
 
         async def observed_send(message):
@@ -76,10 +108,10 @@ class ChainGuardMiddleware:
                     result = await asyncio.to_thread(self._post_event, event)
                 except Exception:
                     if self.on_event_result:
-                        self.on_event_result(event, None)
+                        self.on_event_result(event, {"accepted": False, "gateway": gateway_result["decision"]} if gateway_result else None)
                     return
                 if self.on_event_result:
-                    self.on_event_result(event, result)
+                    self.on_event_result(event, {**(result or {}), "gateway": gateway_result["decision"], "decisionRisk": gateway_result["risk"]} if gateway_result else result)
         except Exception:
             # Observation is explicitly best effort, never an app outage.
             pass
@@ -89,7 +121,7 @@ class ChainGuardMiddleware:
         if method not in ("GET", "POST", "PUT", "PATCH", "DELETE"):
             return None
         path = scope.get("path", "")
-        if path == "/owner" or path.startswith("/api/owner/"):
+        if path == "/owner" or path.startswith("/api/owner/") or path == "/api/gateway/verify":
             return None
         headers = dict(scope.get("headers", ()))
         user_agent = headers.get(b"user-agent", b"").decode("utf-8", "ignore").lower()
@@ -134,9 +166,12 @@ class ChainGuardMiddleware:
         return event
 
     def _post_event(self, event):
+        return self._post_json(self.endpoint, event)
+
+    def _post_json(self, endpoint, payload):
         request = urllib.request.Request(
-            self.endpoint,
-            data=json.dumps(event, separators=(",", ":")).encode("utf-8"),
+            endpoint,
+            data=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
             headers={
                 "Content-Type": "application/json",
                 "X-Chain-Guard-App-Id": self.app_id,
