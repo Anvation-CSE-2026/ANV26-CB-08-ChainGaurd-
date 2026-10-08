@@ -552,22 +552,7 @@
           <a href="#file-storage" id="file-nav" class="side-link" data-section="file-storage" hidden><span aria-hidden="true">▤</span> File storage</a>
           <a href="#integrations" class="side-link" data-section="integrations"><span aria-hidden="true">◇</span> Integrations</a>
           <a href="#owner-access" class="side-link" data-section="owner-access"><span aria-hidden="true">◉</span> Owner access</a>
-          <div class="lab-menu">
-            <div class="lab-menu-row">
-              <a href="#lab" class="side-link" data-section="lab"><span aria-hidden="true">◈</span> Detection lab</a>
-              <button id="toggle-lab-menu" class="lab-menu-toggle" type="button" aria-label="Show lab scenarios" aria-expanded="false" aria-controls="lab-subnav"><span class="chevron" aria-hidden="true">⌄</span></button>
-            </div>
-            <div id="lab-subnav" class="lab-subnav" hidden>
-              <a href="#lab">Lab overview</a>
-              <a href="#lab-legitimate-high-volume">Legitimate traffic</a>
-              <a href="#lab-credential-stuffing">Credential stuffing</a>
-              <a href="#lab-enumeration">Enumeration</a>
-              <a href="#lab-scraping">Scraping</a>
-              <a href="#lab-token-api-key-misuse">Token misuse</a>
-              <a href="#lab-bot-automation-abuse">Bot activity</a>
-              <a href="#lab-combined-risk">Combined attack</a>
-            </div>
-          </div>
+          <a href="#lab" class="side-link" data-section="lab"><span aria-hidden="true">◈</span> Detection lab</a>
           <a href="#threat-monitor" class="side-link" data-section="threat-monitor"><span aria-hidden="true">◎</span> Threat monitor</a>
           <a href="#risk-section" class="side-link" data-section="risk-section"><span aria-hidden="true">◔</span> Risk score</a>
           <a href="#response-section" class="side-link" data-section="response-section"><span aria-hidden="true">▤</span> Responses</a>
@@ -1412,16 +1397,6 @@
       sidebarBackdrop.addEventListener('click', () => setSidebarOpen(false));
       sidebar.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => setSidebarOpen(false)));
 
-      const labMenuToggle = document.querySelector('#toggle-lab-menu');
-      const labSubnav = document.querySelector('#lab-subnav');
-      function setLabMenuOpen(open) {
-        labSubnav.hidden = !open;
-        labMenuToggle.setAttribute('aria-expanded', String(open));
-        labMenuToggle.setAttribute('aria-label', open ? 'Hide lab scenarios' : 'Show lab scenarios');
-      }
-      labMenuToggle.addEventListener('click', () => setLabMenuOpen(labSubnav.hidden));
-      document.querySelector('.side-link[data-section="lab"]').addEventListener('click', () => setLabMenuOpen(true));
-
       function updateSideNav() {
         const hash = location.hash || '#overview';
         const section = hash.startsWith('#overview') ? 'overview'
@@ -1430,10 +1405,6 @@
           : hash.slice(1);
         document.querySelectorAll('.side-link[data-section]').forEach((link) => {
           link.classList.toggle('current', link.dataset.section === section);
-        });
-        if (section === 'lab') setLabMenuOpen(true);
-        document.querySelectorAll('.lab-subnav a').forEach((link) => {
-          link.classList.toggle('current', link.getAttribute('href') === hash);
         });
       }
 
