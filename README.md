@@ -8,7 +8,15 @@ The existing demo request observer and a future connected application now share 
 
 `event-contract.js` defines the first safe integration event format. It accepts an activity (`login`, `user-list`, `user-record`, `product-list`, or `api-request`), method, response status, pseudonymous client ID, broad device class, and optional SHA-256 account/session fingerprints or numeric record ID. It rejects unknown fields such as passwords, raw tokens, email addresses, and untrusted application IDs. The server will assign the application ID only after authenticating a registered connector. Actual URL paths are not accepted; the server uses generic route labels, avoiding accidental capture of private path data.
 
-The contract and engine reuse are covered by automated tests, including cross-application isolation and external-app enumeration. **This is not yet a public integration API or an installable SDK.** The next stage is protected application registration and an authenticated event-ingestion endpoint. Do not send real customer data to this demo.
+The contract and engine reuse are covered by automated tests, including cross-application isolation and external-app enumeration. **This is not yet an event-ingestion API or an installable SDK.** Protected registration is described below; authenticated event ingestion comes next. Do not send real customer data to this demo.
+
+## Protected app registration (step 3)
+
+The sidebar now has an **Integrations** screen. App registration is disabled unless the server owner configures `CHAIN_GUARD_ADMIN_KEY` with a private value of at least 32 characters in the server environment. Set it locally before `npm start`, or in the hosting service's private environment settings for the public deployment. Never put that value in this repository or share it with demo visitors. The public demo login is intentionally not an administrator login.
+
+After configuration, open `/#integrations`, enter the owner key, and register a fictional application such as `Student Portal`. The server generates its ID and a separate random connection key. The connection key is returned only on creation; later app listings contain no keys. The owner key is kept in page memory only, not browser storage. `GET /api/integrations/status` reveals only whether setup is enabled; `GET` and `POST /api/integrations/apps` require the owner key in `X-Chain-Guard-Admin-Key`.
+
+Registrations are **in memory** and reset on server restart or deployment. This is a prototype, not durable credential management. The app key is not yet usable: the authenticated event-ingestion endpoint and connector are the next stages. Do not connect a real application or send production data.
 
 ## Start
 

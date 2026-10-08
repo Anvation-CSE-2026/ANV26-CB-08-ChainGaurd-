@@ -15,6 +15,7 @@ const { scoreRisk, getRiskSummary } = require('./risk-engine');
 const { analyzeObservedEvent } = require('./security-pipeline');
 const { decideResponse, verifyChallenge, getResponseSummary, getResponseEvents } = require('./response-engine');
 const { SCENARIOS, runLabScenario } = require('./lab-runner');
+const { createIntegrationRegistry } = require('./integration-registry');
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '127.0.0.1';
@@ -41,6 +42,7 @@ const products = [
 ];
 
 const sessions = new Map();
+const integrationRegistry = createIntegrationRegistry(process.env.CHAIN_GUARD_ADMIN_KEY);
 let labRunning = false;
 
 function sendJson(response, status, body, extraHeaders = {}) {
@@ -94,6 +96,24 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === 'GET' && url.pathname === '/api/health') {
       return sendJson(response, 200, { status: 'ok', service: 'chain-guard-demo-api' });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/integrations/status') {
+      return sendJson(response, 200, { registrationConfigured: integrationRegistry.configured, mode: 'demo' });
+    }
+
+    if (url.pathname === '/api/integrations/apps' && ['GET', 'POST'].includes(request.method)) {
+      if (!integrationRegistry.configured) return sendJson(response, 503, { error: 'Owner setup is required before app registration.' });
+      if (!integrationRegistry.isAuthorized(request.headers['x-chain-guard-admin-key'])) {
+        return sendJson(response, 401, { error: 'A valid owner key is required.' });
+      }
+      if (request.method === 'GET') return sendJson(response, 200, { applications: integrationRegistry.listApplications() });
+      const { name } = await readJson(request);
+      try {
+        return sendJson(response, 201, integrationRegistry.createApplication(name));
+      } catch (error) {
+        return sendJson(response, error.message.startsWith('Demo limit') ? 409 : 400, { error: error.message });
+      }
     }
 
     if (request.method === 'POST' && url.pathname === '/api/verify') {
@@ -225,6 +245,10 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`Chain Guard demo is running on ${HOST}:${PORT}`);
-});
+if (require.main === module) {
+  server.listen(PORT, HOST, () => {
+    console.log(`Chain Guard demo is running on ${HOST}:${PORT}`);
+  });
+}
+
+module.exports = { server };
