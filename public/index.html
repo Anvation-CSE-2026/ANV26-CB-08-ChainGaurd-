@@ -359,6 +359,8 @@
       .section-heading h2, .login-panel h2 { margin: 7px 0 7px; font-size: 1.45rem; letter-spacing: -.025em; }
       .section-heading p { max-width: 650px; margin: 0; font-size: .86rem; }
       .section-tag { padding: 6px 9px; border: 1px solid #41627f; border-radius: 99px; color: #9fcce2; font-size: .68rem; font-weight: 800; white-space: nowrap; }
+      a.section-tag { display: inline-block; margin-top: 12px; text-decoration: none; }
+      .lab-card:target { outline: 2px solid #36a76b; outline-offset: 2px; }
       .lab-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
       .lab-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 30px; align-items: start; min-width: 0; padding: 26px; border: 1px solid #2c4868; border-radius: 12px; background: #0c1a2e; scroll-margin-top: 90px; }
       .lab-card > .lab-number, .lab-card > h3, .lab-card > p, .lab-card > .lab-run { grid-column: 1; }
@@ -597,7 +599,7 @@
         </section>
 
         <section id="lab" class="lab-panel workspace-page" data-page="lab" aria-labelledby="lab-title">
-          <div class="section-heading"><div><div class="eyebrow">INTERACTIVE LAB</div><h2 id="lab-title">Run a safe traffic scenario</h2><p>Compare legitimate traffic with synthetic attacks. Every request passes through the real detection, scoring, and response pipeline.</p></div><span class="section-tag">8 scenarios</span></div>
+          <div class="section-heading"><div><div class="eyebrow">INTERACTIVE LAB</div><h2 id="lab-title">Run a safe traffic scenario</h2><p>Compare legitimate traffic with synthetic attacks. Every request passes through the real detection, scoring, and response pipeline.</p><a class="section-tag" href="#lab-slow-enumeration">New: Slow attack — try it →</a></div><span class="section-tag">8 scenarios</span></div>
           <div class="lab-grid">
             <article id="lab-legitimate-high-volume" class="lab-card safe"><span class="lab-number">00 / BASELINE</span><h3>Legitimate high-volume traffic</h3><p>Send 50 normal listing requests from independent fictional visitors.</p><button class="lab-run" type="button" data-scenario="legitimate-high-volume">Run normal traffic <span aria-hidden="true">→</span></button><div class="lab-result" data-lab-result hidden aria-live="polite"></div></article>
             <article id="lab-credential-stuffing" class="lab-card"><span class="lab-number">01 / ACCESS</span><h3>Credential stuffing</h3><p>Try several made-up accounts with wrong demo passwords.</p><button class="lab-run" type="button" data-scenario="credential-stuffing">Run simulation <span aria-hidden="true">→</span></button><div class="lab-result" data-lab-result hidden aria-live="polite"></div></article>
@@ -1451,6 +1453,16 @@
 
       updateSideNav();
       renderWorkspacePage();
+      function scrollToWorkspaceTarget() {
+        const targetId = location.hash.slice(1);
+        const target = targetId.startsWith('lab-') || targetId === 'overview-activity'
+          ? document.getElementById(targetId) : null;
+        requestAnimationFrame(() => {
+          if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+          else window.scrollTo({ top: 0, behavior: 'auto' });
+        });
+      }
+      scrollToWorkspaceTarget();
       if (location.hash === '#file-storage') {
         result.textContent = 'Sign in to open the demo file area in this browser.';
         location.replace('#login');
@@ -1842,11 +1854,7 @@
         renderWorkspacePage();
         renderActiveView();
         updateSideNav();
-        if (location.hash === '#overview-activity') {
-          requestAnimationFrame(() => document.querySelector('#overview-activity').scrollIntoView({ behavior: 'smooth', block: 'start' }));
-        } else {
-          window.scrollTo({ top: 0, behavior: 'auto' });
-        }
+        scrollToWorkspaceTarget();
       });
       abuseTabs.forEach((tab) => tab.addEventListener('click', () => {
         if (location.hash === tab.getAttribute('href')) renderActiveView();
