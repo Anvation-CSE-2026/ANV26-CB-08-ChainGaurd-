@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Northstar · Owner test lab</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f1f6f3;color:#17352a;font:16px/1.5 system-ui,sans-serif}main{max-width:1050px;margin:40px auto;padding:28px;background:white;border:1px solid #c5dfcc;border-radius:18px}h1{margin:8px 0}label{display:block;font-weight:700;margin:20px 0 8px}input{width:100%;padding:14px;border:1px solid #bdd3c4;border-radius:10px;font:inherit}button{padding:14px;border:1px solid #b8dbc4;background:#edf8f0;color:#17603b;border-radius:10px;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:wait}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:24px}#result{padding:18px;background:#eef8f1;border-radius:12px;margin-top:20px}a{color:#118450}p{color:#526c5c}@media(max-width:600px){main{margin:12px}.grid{grid-template-columns:1fr}}
+</style></head>
+<body><main><a href="/">← Student portal</a><p>PRIVATE OWNER AREA</p><h1>Security test lab</h1><p>Only the owner can run these fictional tests. Students do not need this key. Tests run in the Python backend through the portal's actual API routes.</p>
+<label for="key">Portal owner key</label><input id="key" type="password" autocomplete="off" placeholder="Enter your private portal owner key"><p>The key stays in this tab's memory. It is not saved in browser storage.</p>
+<div class="grid" id="tests">
+<button data-scenario="stuffing">Failed logins</button><button data-scenario="enumeration">Sequential records</button><button data-scenario="scraping">Fast listings</button><button data-scenario="token">Token overuse</button><button data-scenario="bot">Rapid automation</button><button data-scenario="combined">Run combined test →</button>
+</div><div id="result" role="status" aria-live="polite">Enter the owner key, then choose a test.</div><p>Only synthetic data is used. Connector delivery is best effort; completion does not guarantee that Chain Guard received every event.</p><a id="dashboard" hidden>Open Chain Guard Integrations →</a></main>
+<script>
+const result=document.getElementById('result');
+document.getElementById('tests').addEventListener('click',async event=>{
+ const button=event.target.closest('button[data-scenario]');if(!button)return;
+ const key=document.getElementById('key').value;if(!key){result.textContent='Enter your portal owner key first.';return;}
+ const buttons=document.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);result.textContent='Running the fictional test in the portal backend…';
+ try{const response=await fetch('/api/owner/simulations',{method:'POST',headers:{'Content-Type':'application/json','X-Portal-Owner-Key':key},body:JSON.stringify({scenario:button.dataset.scenario})});const data=await response.json();if(!response.ok)throw Error(data.detail||'Test failed');result.textContent=`${data.requestsSent} actual portal requests completed. ${data.message}`;}catch(error){result.textContent=error.message;}finally{buttons.forEach(b=>b.disabled=false);}
+});
+fetch('/api/status').then(r=>r.json()).then(data=>{if(data.dashboardUrl){const link=document.getElementById('dashboard');link.href=data.dashboardUrl;link.hidden=false;}}).catch(()=>{});
+</script></body></html>

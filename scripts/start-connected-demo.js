@@ -89,7 +89,8 @@ async function main() {
       CHAIN_GUARD_URL: chainUrl,
       CHAIN_GUARD_APP_ID: application.id,
       CHAIN_GUARD_APP_KEY: connectionKey,
-      CHAIN_GUARD_IDENTITY_SECRET: randomBytes(32).toString('hex')
+      CHAIN_GUARD_IDENTITY_SECRET: randomBytes(32).toString('hex'),
+      PORTAL_OWNER_KEY: ownerKey
     },
     stdio: ['ignore', 'ignore', 'pipe']
   });

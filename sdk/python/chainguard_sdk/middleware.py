@@ -81,6 +81,8 @@ class ChainGuardMiddleware:
         if method not in ("GET", "POST", "PUT", "PATCH", "DELETE"):
             return None
         path = scope.get("path", "")
+        if path == "/owner" or path.startswith("/api/owner/"):
+            return None
         headers = dict(scope.get("headers", ()))
         user_agent = headers.get(b"user-agent", b"").decode("utf-8", "ignore").lower()
         if any(marker in user_agent for marker in ("bot", "curl", "python-requests", "httpx")):

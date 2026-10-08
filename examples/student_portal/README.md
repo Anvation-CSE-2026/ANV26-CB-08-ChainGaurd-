@@ -40,11 +40,13 @@ connector into Chain Guard's existing ingestion and detection path.
 
    Open `http://127.0.0.1:8000/`. Sign in as `student1001` with
    `PortalPass!123`. You can view the fictional roster and record details.
-   The **Security test lab** has separate buttons for failed logins, sequential
-   records, fast listings, token overuse, rapid automation, and a combined
-   scenario. Refresh this app in Chain Guard Integrations to see its alerts
-   and cumulative risk score. The combined browser scenario sends about 90
-   requests; run it against the local demo, not a real application.
+   The student page has no test lab. Open `/owner` for the owner test lab.
+   Set a private `PORTAL_OWNER_KEY` on the portal server to enable tests;
+   without it tests are disabled. Student login tokens cannot authorize tests.
+   The owner enters that key and selects a scenario. The Python backend sends
+   actual requests through the app routes and connector (92 for combined).
+   Refresh this app in Chain Guard Integrations to review delivered events.
+   This is a demo key gate, not Keycloak authentication. Use HTTPS when hosted.
 
 ### One-command local demo
 
@@ -53,6 +55,7 @@ Chain Guard on `http://127.0.0.1:3100/` and this portal on
 `http://127.0.0.1:8000/`, registers the portal automatically with temporary
 local-only keys, and prints the owner key for the Chain Guard Integrations
 screen. Keep that terminal open. Press Ctrl+C to stop both processes.
+The same generated local-only key opens tests at `http://127.0.0.1:8000/owner`.
 
 The launcher looks for the Python environment used in this workspace at
 `work/fastapi-verify`, then `.venv`. If you installed the dependencies

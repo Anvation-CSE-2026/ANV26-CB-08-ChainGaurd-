@@ -2,6 +2,8 @@
 
 import os
 import secrets
+import asyncio
+import httpx
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -40,11 +42,17 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class SimulationRequest(BaseModel):
+    scenario: str
+
+
 def create_app(config=None):
     """Create an isolated portal; config may override environment for tests."""
     config = config if config is not None else os.environ
     app = FastAPI(title="Fictional Student Portal", docs_url=None, redoc_url=None)
     sessions = {}
+    owner_key = config.get("PORTAL_OWNER_KEY", "")
+    simulation_lock = asyncio.Lock()
     keys = (
         "CHAIN_GUARD_URL", "CHAIN_GUARD_APP_ID", "CHAIN_GUARD_APP_KEY",
         "CHAIN_GUARD_IDENTITY_SECRET",
@@ -78,6 +86,53 @@ def create_app(config=None):
     @app.get("/", include_in_schema=False)
     def home():
         return FileResponse(Path(__file__).with_name("index.html"))
+
+    @app.get("/owner", include_in_schema=False)
+    def owner_page():
+        return FileResponse(Path(__file__).with_name("owner.html"))
+
+    @app.post("/api/owner/simulations")
+    async def simulate(payload: SimulationRequest, x_portal_owner_key: str = Header(default="")):
+        if not owner_key:
+            raise HTTPException(503, "Owner tests are disabled. Configure PORTAL_OWNER_KEY on the portal server.")
+        if not secrets.compare_digest(x_portal_owner_key.encode(), owner_key.encode()):
+            raise HTTPException(403, "A valid portal owner key is required.")
+        kinds = ("stuffing", "enumeration", "scraping", "token", "bot")
+        if payload.scenario not in (*kinds, "combined"):
+            raise HTTPException(400, "Unknown fictional scenario.")
+        if simulation_lock.locked():
+            raise HTTPException(409, "A test is already running. Try again when it finishes.")
+        async with simulation_lock:
+            # In-process HTTP uses the actual app routes and connector. No user-supplied target.
+            transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 46000))
+            async with httpx.AsyncClient(transport=transport, base_url="http://portal.test", headers={"User-Agent": "Northstar-Owner-Test"}) as client:
+                count = 0
+                demo_token = None
+
+                async def send(method, path, expected=200, **kwargs):
+                    nonlocal count
+                    response = await client.request(method, path, **kwargs)
+                    count += 1
+                    if response.status_code != expected:
+                        raise HTTPException(500, "The fictional test could not finish.")
+                    return response
+
+                for kind in kinds if payload.scenario == "combined" else (payload.scenario,):
+                    if kind == "stuffing":
+                        for number in range(1001, 1006):
+                            await send("POST", "/api/login", 401, json={"username": f"student{number}", "password": "wrong-demo-password"})
+                    elif kind in ("enumeration", "token"):
+                        if demo_token is None:
+                            response = await send("POST", "/api/login", json={"username": "student1001", "password": DEMO_PASSWORD})
+                            demo_token = response.json()["token"]
+                        paths = [f"/api/students/{number}" for number in range(1001, 1005)] if kind == "enumeration" else ["/api/students"] * 50
+                        for path in paths:
+                            await send("GET", path, headers={"Authorization": f"Bearer {demo_token}"})
+                    else:
+                        for _ in range(20 if kind == "scraping" else 12):
+                            await send("GET", "/api/courses")
+                return {"scenario": payload.scenario, "requestsSent": count, "connectorConfigured": connected,
+                        "message": "Test requests completed. Check Chain Guard Integrations for delivered events." if connected else "Test requests completed, but no Chain Guard connector is configured."}
 
     @app.get("/favicon.svg", include_in_schema=False)
     def favicon():

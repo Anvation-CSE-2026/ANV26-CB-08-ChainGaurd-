@@ -127,40 +127,12 @@
         <section class="card" aria-labelledby="courses-title"><h2 id="courses-title">Course catalog</h2><p class="small">Public fictional listing for request-volume tests.</p><div id="courses"></div></section>
       </div>
     </div>
-    <section class="card lab-card" aria-labelledby="test-title">
-      <div class="lab-heading"><div><div class="eyebrow">CHAIN GUARD / TEST WORKSPACE</div><h2 id="test-title">Security test lab</h2><p class="small">Run safe traffic against this fictional Portal. Open the connected Chain Guard dashboard to see the matching alerts and cumulative risk score.</p></div><span class="lab-chip">5 ABUSE DETECTORS + COMBINED TEST</span></div>
-      <div id="test-scenarios" class="scenario-grid">
-        <button class="scenario danger" type="button" data-scenario="stuffing"><strong>Failed logins</strong><span>Try five fictional student IDs with wrong demo passwords.</span></button>
-        <button class="scenario" type="button" data-scenario="enumeration"><strong>Sequential records</strong><span>Request four numbered fictional student records.</span></button>
-        <button class="scenario" type="button" data-scenario="scraping"><strong>Fast listings</strong><span>Load the public course list twenty times.</span></button>
-        <button class="scenario" type="button" data-scenario="token"><strong>Token overuse</strong><span>Make fifty requests using one fictional session.</span></button>
-        <button class="scenario" type="button" data-scenario="bot"><strong>Rapid automation</strong><span>Send twelve quick course-list requests.</span></button>
-        <button class="scenario combined" type="button" data-scenario="combined"><strong>Run combined test →</strong><span>Exercise all five behaviors to build a cumulative risk score.</span></button>
-      </div>
-      <div class="lab-footer"><div id="test-message" class="test-result" role="status" aria-live="polite" data-state="ready"><span id="test-result-value" class="test-result-value" aria-hidden="true">✓</span><div><strong id="test-result-title" class="test-result-title">Ready to test</strong><span id="test-result-detail" class="test-result-detail">Only fictional accounts and records are used. The combined test sends about 90 requests.</span></div></div><div class="flow">Student Portal → Connector → Chain Guard</div></div>
-    </section>
     <p class="foot">Prototype only · Data and accounts are fictional · Sessions reset when this portal restarts.</p>
   </main>
   <script>
     let token = '';
     const byId = id => document.getElementById(id);
     const message = (id, text, error = false) => { const el = byId(id); el.textContent = text; el.classList.toggle('error', error); };
-    const scenarioLabels = { stuffing: 'failed logins', enumeration: 'sequential records', scraping: 'fast listings', token: 'token overuse', bot: 'rapid automation' };
-    const scenarioTotals = { stuffing: 5, enumeration: 4, scraping: 20, token: 50, bot: 12 };
-    const scenarioResults = {
-      stuffing: ['5', 'Failed logins sent', 'Five fictional accounts were tried with wrong demo passwords.'],
-      enumeration: ['4', 'Records requested', 'Four sequential fictional student records were opened.'],
-      scraping: ['20', 'Listing requests sent', 'The public course list was requested twenty times.'],
-      token: ['50', '50 requests with one fictional token sent', 'The token-overuse test is complete.'],
-      bot: ['12', 'Rapid requests sent', 'Twelve quick requests were sent to the fictional course list.']
-    };
-
-    function setTestResult(value, title, detail, state) {
-      byId('test-message').dataset.state = state;
-      byId('test-result-value').textContent = value;
-      byId('test-result-title').textContent = title;
-      byId('test-result-detail').textContent = detail;
-    }
 
     async function loadStatus() {
       try {
@@ -230,81 +202,6 @@
       } catch { byId('courses').textContent = 'Courses unavailable.'; }
     }
 
-    async function ensureDemoToken() {
-      if (token) return token;
-      const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'student1001', password: 'PortalPass!123' }) });
-      if (!response.ok) throw new Error('Could not start a fictional demo session.');
-      token = (await response.json()).token;
-      return token;
-    }
-
-    async function sendScenario(kind, onProgress = () => {}) {
-      if (kind === 'stuffing') {
-        for (let id = 1001; id <= 1005; id++) {
-          const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: `student${id}`, password: 'wrong-demo-password' }) });
-          if (response.status !== 401) throw new Error('Failed-login test did not complete as expected.');
-          onProgress(id - 1000, 5);
-        }
-        return '5 failed fictional logins';
-      }
-      if (kind === 'enumeration') {
-        const demoToken = await ensureDemoToken();
-        for (let id = 1001; id <= 1004; id++) {
-          const response = await fetch(`/api/students/${id}`, { headers: { Authorization: `Bearer ${demoToken}` } });
-          if (!response.ok) throw new Error('Sequential-record test could not read the demo records.');
-          onProgress(id - 1000, 4);
-        }
-        return '4 sequential fictional records';
-      }
-      if (kind === 'scraping') {
-        for (let request = 0; request < 20; request++) {
-          const response = await fetch('/api/courses');
-          if (!response.ok) throw new Error('Listing test could not finish.');
-          if ((request + 1) % 5 === 0) onProgress(request + 1, 20);
-        }
-        return '20 public course listings';
-      }
-      if (kind === 'token') {
-        const demoToken = await ensureDemoToken();
-        for (let request = 0; request < 50; request++) {
-          const response = await fetch('/api/students', { headers: { Authorization: `Bearer ${demoToken}` } });
-          if (!response.ok) throw new Error('Token-volume test could not finish.');
-          if ((request + 1) % 5 === 0) onProgress(request + 1, 50);
-        }
-        return '50 requests with one fictional token';
-      }
-      if (kind === 'bot') {
-        const responses = await Promise.all(Array.from({ length: 12 }, () => fetch('/api/courses')));
-        if (responses.some(response => !response.ok)) throw new Error('Rapid-request test could not finish.');
-        onProgress(12, 12);
-        return '12 rapid course requests';
-      }
-      throw new Error('Unknown demo test.');
-    }
-
-    byId('test-scenarios').addEventListener('click', async event => {
-      const button = event.target.closest('button[data-scenario]');
-      if (!button) return;
-      const buttons = byId('test-scenarios').querySelectorAll('button');
-      buttons.forEach(item => { item.disabled = true; });
-      const kind = button.dataset.scenario;
-      const sequence = kind === 'combined' ? ['stuffing', 'enumeration', 'scraping', 'bot', 'token'] : [kind];
-      try {
-        for (const step of sequence) {
-          setTestResult(`0/${scenarioTotals[step]}`, `Running ${scenarioLabels[step]}…`, 'Requests are being sent from Northstar. Keep this page open.', 'running');
-          await sendScenario(step, (done, total) => {
-            setTestResult(`${done}/${total}`, `Running ${scenarioLabels[step]}…`, `${done} of ${total} fictional requests sent.`, 'running');
-          });
-        }
-        if (kind === 'combined') {
-          setTestResult('5', 'All five tests sent', 'Open Chain Guard → Integrations and refresh Northstar to review the alerts and cumulative risk.', 'success');
-        } else {
-          const [value, title, detail] = scenarioResults[kind];
-          setTestResult(value, title, `${detail} Open Chain Guard → Integrations to review the result.`, 'success');
-        }
-      } catch (error) { setTestResult('!', 'Test stopped', error.message, 'error'); }
-      finally { buttons.forEach(item => { item.disabled = false; }); }
-    });
 
     loadStatus(); loadCourses();
   </script>
