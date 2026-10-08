@@ -61,12 +61,22 @@
       .alert p { margin: 9px 0; color: #b8cce4; font-size: .88rem; }
       .alert-meta, .signal-list { color: #91acc9; font-size: .78rem; line-height: 1.55; }
       .signal-list { margin: 5px 0 0; padding-left: 18px; }
-      .risk-overview { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 16px; padding: 16px; border: 1px solid #29476e; border-radius: 11px; background: #0b1a2e; }
-      .risk-overview h3 { margin: 0 0 5px; font-size: 1rem; }
-      .risk-overview p { margin: 0; font-size: .8rem; }
-      .risk-values { display: flex; gap: 12px; text-align: right; white-space: nowrap; }
-      .risk-values strong { display: block; font-size: 1.2rem; }
-      .risk-values small { color: #9ab5d5; }
+      .risk-overview { --risk-accent: #69d5ff; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 30px; margin-top: 22px; padding: 26px 28px; border: 2px solid #397eaa; border-radius: 16px; background: linear-gradient(120deg, #12334e, #0c2037 70%); box-shadow: 0 12px 32px #0003, inset 4px 0 var(--risk-accent); }
+      .risk-overview[data-level="low"] { --risk-accent: #65d99a; }
+      .risk-overview[data-level="medium"] { --risk-accent: #f5d681; }
+      .risk-overview[data-level="high"] { --risk-accent: #ffc193; }
+      .risk-overview[data-level="critical"] { --risk-accent: #ff8991; }
+      .risk-overview h3 { margin: 8px 0 9px; font-size: clamp(1.5rem, 2.4vw, 2rem); letter-spacing: -.035em; }
+      .risk-overview p { max-width: 480px; margin: 0; font-size: .86rem; }
+      .risk-values { display: flex; align-items: center; gap: 22px; white-space: nowrap; }
+      .risk-value { display: flex; flex-direction: column; }
+      .risk-value strong { display: block; font-size: 1.5rem; line-height: 1.05; }
+      .risk-value small { margin-top: 6px; color: #9ab5d5; font-size: .74rem; }
+      .risk-value-primary { min-width: 166px; padding: 15px 18px; border: 1px solid #477998; border-radius: 13px; background: #081b2dbb; }
+      .risk-value-primary strong { color: var(--risk-accent); font-size: clamp(2.8rem, 5vw, 4rem); letter-spacing: -.07em; }
+      .risk-level { margin-top: 8px; color: var(--risk-accent); font-size: .74rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+      .risk-meter { grid-column: 1 / -1; height: 9px; overflow: hidden; border-radius: 999px; background: #28435b; }
+      .risk-meter-fill { width: 0; height: 100%; border-radius: inherit; background: var(--risk-accent); transition: width .3s ease; }
       .risk-score { display: inline-block; margin-top: 12px; padding: 6px 10px; border-radius: 7px; background: #17385d; color: #d7edff; font-size: .85rem; font-weight: 800; }
       .risk-score.low { background: #153b2b; color: #7ee3a4; }
       .risk-score.medium { background: #3f3418; color: #f5d681; }
@@ -94,7 +104,7 @@
       .action-label.step-up { background: #4d2b1e; color: #ffc193; }
       .action-label.block { background: #481f28; color: #ffabb2; }
       .empty { padding: 22px; border: 1px dashed #49658f; border-radius: 10px; color: #a7c0dd; text-align: center; }
-      @media (max-width: 650px) { main { padding: 24px; } .metrics, .response-metrics { grid-template-columns: repeat(2, 1fr); } .monitor-header { align-items: flex-start; } .risk-overview { display: block; } .risk-values { margin-top: 14px; text-align: left; } }
+      @media (max-width: 650px) { main { padding: 24px; } .metrics, .response-metrics { grid-template-columns: repeat(2, 1fr); } .monitor-header { align-items: flex-start; } .risk-overview { grid-template-columns: 1fr; padding: 21px; } .risk-values { justify-content: space-between; gap: 12px; } .risk-value-primary { min-width: 0; } }
 
       body[data-theme="light"] { color-scheme: light; color: #173326; background: #f7fbf8; }
       body[data-theme="light"] main { border-color: #d5e9dc; background: #ffffff; box-shadow: 0 22px 60px #17432917; }
@@ -120,8 +130,15 @@
       body[data-theme="light"] .alert { border-color: #d5e9dc; background: #ffffff; }
       body[data-theme="light"] .alert p { color: #587060; }
       body[data-theme="light"] .empty { border-color: #b9d7c3; color: #587060; }
-      body[data-theme="light"] .risk-overview { border-color: #d5e9dc; background: #f8fcf9; }
-      body[data-theme="light"] .risk-values small, body[data-theme="light"] .risk-breakdown { color: #6b7f71; }
+      body[data-theme="light"] .risk-overview { --risk-accent: #16834a; border-color: #91cba5; background: linear-gradient(120deg, #f0faf3, #ffffff 70%); box-shadow: 0 12px 28px #17432916, inset 4px 0 var(--risk-accent); }
+      body[data-theme="light"] .risk-overview[data-level="medium"] { --risk-accent: #9a6b00; }
+      body[data-theme="light"] .risk-overview[data-level="high"] { --risk-accent: #a44c18; }
+      body[data-theme="light"] .risk-overview[data-level="critical"] { --risk-accent: #b42535; border-color: #e5b1b5; background: #fff8f8; }
+      body[data-theme="light"] .risk-value-primary { border-color: #c6e2cf; background: #ffffff; }
+      body[data-theme="light"] .risk-value strong { color: #173326; }
+      body[data-theme="light"] .risk-value-primary strong { color: var(--risk-accent); }
+      body[data-theme="light"] .risk-meter { background: #e2eee6; }
+      body[data-theme="light"] .risk-value small, body[data-theme="light"] .risk-breakdown { color: #6b7f71; }
       body[data-theme="light"] .risk-score.low { background: #e6f4ea; color: #17613b; }
       body[data-theme="light"] .risk-score.medium { background: #fff4d9; color: #775300; }
       body[data-theme="light"] .risk-score.high { background: #fff0e5; color: #8a3d12; }
@@ -345,7 +362,7 @@
         .section-tag { display: inline-block; margin-top: 12px; }
         .login-intro { display: block; }
       }
-      @media (max-width: 480px) { .lab-grid { grid-template-columns: 1fr; } .topbar-path { display: none; } }
+      @media (max-width: 480px) { .lab-grid { grid-template-columns: 1fr; } .topbar-path { display: none; } .risk-values { flex-wrap: wrap; } .risk-value-primary { width: 100%; } }
     </style>
   </head>
   <body>
@@ -488,9 +505,10 @@
             <p>Each demo API request is scored from 0 to 100. Signals add points once per behavior.</p>
           </div>
           <div class="risk-values">
-            <div><strong id="latest-risk">—</strong><small>Latest request</small></div>
-            <div><strong id="highest-risk">—</strong><small>Highest seen</small></div>
+            <div class="risk-value risk-value-primary"><strong id="latest-risk">—</strong><small>Latest request · out of 100</small><span id="risk-level" class="risk-level">Awaiting requests</span></div>
+            <div class="risk-value"><strong id="highest-risk">—</strong><small>Highest seen</small></div>
           </div>
+          <div class="risk-meter" role="progressbar" aria-label="Latest risk score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="risk-meter-fill" class="risk-meter-fill"></div></div>
         </div>
         <nav class="abuse-tabs" aria-label="Abuse type views">
           <a class="abuse-tab" href="#threat-monitor" data-view="all">All alerts <span class="tab-count" id="count-all">0</span></a>
@@ -912,6 +930,10 @@
       const lastUpdated = document.querySelector('#last-updated');
       const latestRisk = document.querySelector('#latest-risk');
       const highestRisk = document.querySelector('#highest-risk');
+      const riskOverview = document.querySelector('#risk-section');
+      const riskLevel = document.querySelector('#risk-level');
+      const riskMeter = document.querySelector('.risk-meter');
+      const riskMeterFill = document.querySelector('#risk-meter-fill');
       const tabDetail = document.querySelector('#tab-detail');
       const detectionHeading = document.querySelector('#detection-heading');
       const abuseTabs = [...document.querySelectorAll('.abuse-tab')];
@@ -954,6 +976,13 @@
         abuseTypes.textContent = Object.keys(summary.byType || {}).length;
         latestRisk.textContent = data.riskSummary?.latest ? `${data.riskSummary.latest.score}/100` : '—';
         highestRisk.textContent = data.riskSummary?.scoredRequests ? `${data.riskSummary.highestScore}/100` : '—';
+        const currentRisk = data.riskSummary?.latest;
+        const riskScore = Math.max(0, Math.min(100, Number(currentRisk?.score) || 0));
+        const level = ['low', 'medium', 'high', 'critical'].includes(currentRisk?.level) ? currentRisk.level : '';
+        riskOverview.dataset.level = level;
+        riskLevel.textContent = level ? `${labelFor(level)} risk` : 'Awaiting requests';
+        riskMeterFill.style.width = `${riskScore}%`;
+        riskMeter.setAttribute('aria-valuenow', String(riskScore));
         document.querySelector('#overview-requests').textContent = data.riskSummary?.scoredRequests || 0;
         document.querySelector('#overview-alerts').textContent = summary.total || 0;
         document.querySelector('#overview-risk').textContent = data.riskSummary?.highestScore ?? 0;
