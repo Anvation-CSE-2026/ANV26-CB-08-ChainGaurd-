@@ -30,7 +30,8 @@ function sameApplication(event, candidate) {
 }
 
 function isMonitoredActivity(event) {
-  return activityOf(event) !== 'api-request';
+  return activityOf(event) !== 'api-request' ||
+    (event.applicationId && event.applicationId !== DEMO_APPLICATION_ID);
 }
 
 function validateIntegrationEvent(input) {

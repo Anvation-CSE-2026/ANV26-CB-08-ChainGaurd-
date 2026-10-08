@@ -7,6 +7,7 @@ const {
   getBearerToken,
   startRequestObservation,
   completeRequestObservation,
+  recordEvent,
   getRecentEvents,
   getSummary
 } = require('./request-monitor');
@@ -16,6 +17,7 @@ const { analyzeObservedEvent } = require('./security-pipeline');
 const { decideResponse, verifyChallenge, getResponseSummary, getResponseEvents } = require('./response-engine');
 const { SCENARIOS, runLabScenario } = require('./lab-runner');
 const { createIntegrationRegistry } = require('./integration-registry');
+const { DEMO_APPLICATION_ID, normalizeIntegrationEvent } = require('./event-contract');
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '127.0.0.1';
@@ -54,20 +56,29 @@ function sendJson(response, status, body, extraHeaders = {}) {
   response.end(JSON.stringify(body, null, 2));
 }
 
-function readJson(request) {
+function readJson(request, maxBytes = 1_000_000) {
   return new Promise((resolve, reject) => {
-    let body = '';
+    const chunks = [];
+    let bytes = 0;
     request.on('data', (chunk) => {
-      body += chunk;
-      if (body.length > 1_000_000) request.destroy();
+      bytes += chunk.length;
+      if (bytes <= maxBytes) chunks.push(chunk);
     });
     request.on('end', () => {
+      if (bytes > maxBytes) {
+        const error = new Error('JSON body is too large.');
+        error.status = 413;
+        reject(error);
+        return;
+      }
       try {
+        const body = Buffer.concat(chunks).toString('utf8');
         resolve(body ? JSON.parse(body) : {});
       } catch {
         reject(new Error('Invalid JSON body'));
       }
     });
+    request.on('error', reject);
   });
 }
 
@@ -88,7 +99,7 @@ const server = http.createServer(async (request, response) => {
   const observation = startRequestObservation(request, url);
   response.on('finish', () => {
     const event = completeRequestObservation(observation, response);
-    analyzeObservedEvent(event, getRecentEvents(500));
+    analyzeObservedEvent(event, getRecentEvents(500, DEMO_APPLICATION_ID));
   });
 
   try {
@@ -116,6 +127,36 @@ const server = http.createServer(async (request, response) => {
       }
     }
 
+    if (request.method === 'POST' && url.pathname === '/api/v1/events') {
+      const applicationId = request.headers['x-chain-guard-app-id'];
+      if (!integrationRegistry.authenticatesApplication(applicationId, request.headers['x-chain-guard-app-key'])) {
+        return sendJson(response, 401, { error: 'A valid application connection is required.' });
+      }
+      if (String(request.headers['content-type'] || '').split(';')[0].trim().toLowerCase() !== 'application/json') {
+        return sendJson(response, 415, { error: 'Send a JSON event.' });
+      }
+      if (!integrationRegistry.allowEvent(applicationId)) {
+        return sendJson(response, 429, { error: 'Demo event limit reached. Try again in a minute.' }, { 'Retry-After': '60' });
+      }
+      let event;
+      try {
+        event = normalizeIntegrationEvent(await readJson(request, 8_192), applicationId);
+      } catch (error) {
+        if (error.status) throw error;
+        return sendJson(response, error.message === 'Invalid JSON body' ? 400 : 422, { error: error.message });
+      }
+      recordEvent(event);
+      const { detections } = analyzeObservedEvent(event, getRecentEvents(500, applicationId));
+      integrationRegistry.recordEvent(applicationId, event.timestamp);
+      return sendJson(response, 202, {
+        accepted: true,
+        eventId: event.id,
+        applicationId,
+        risk: event.risk,
+        detections: detections.map(({ type, severity }) => ({ type, severity }))
+      });
+    }
+
     if (request.method === 'POST' && url.pathname === '/api/verify') {
       const { challengeId, answer } = await readJson(request);
       const verification = verifyChallenge(observation, challengeId, answer);
@@ -139,7 +180,7 @@ const server = http.createServer(async (request, response) => {
 
     if (/^\/api\/(login|products|users)(\/|$)/.test(url.pathname)) {
       const provisional = { ...observation, statusCode: 0 };
-      const decisionRisk = scoreRisk(provisional, [provisional, ...getRecentEvents(500)]);
+      const decisionRisk = scoreRisk(provisional, [provisional, ...getRecentEvents(500, DEMO_APPLICATION_ID)]);
       const decision = decideResponse(request, observation, decisionRisk);
       observation.security = {
         action: decision.action,
@@ -211,27 +252,27 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/monitor/requests') {
-      return sendJson(response, 200, { events: getRecentEvents(url.searchParams.get('limit')) });
+      return sendJson(response, 200, { events: getRecentEvents(url.searchParams.get('limit'), DEMO_APPLICATION_ID) });
     }
 
     if (request.method === 'GET' && url.pathname === '/api/monitor/detections') {
       return sendJson(response, 200, {
-        summary: getDetectionSummary(),
-        riskSummary: getRiskSummary(getRecentEvents(500)),
-        detections: getDetections(url.searchParams.get('limit'))
+        summary: getDetectionSummary(DEMO_APPLICATION_ID),
+        riskSummary: getRiskSummary(getRecentEvents(500, DEMO_APPLICATION_ID)),
+        detections: getDetections(url.searchParams.get('limit'), DEMO_APPLICATION_ID)
       });
     }
 
     if (request.method === 'GET' && url.pathname === '/api/monitor/risks') {
-      const scored = getRecentEvents(500)
+      const scored = getRecentEvents(500, DEMO_APPLICATION_ID)
         .filter((event) => /^\/api\/(login|products|users)(\/|$)/.test(event.endpoint))
         .slice(0, Math.min(Math.max(Number(url.searchParams.get('limit')) || 20, 1), 100))
         .map((event) => ({ timestamp: event.timestamp, ip: event.ip, endpoint: event.endpoint, risk: event.risk }));
-      return sendJson(response, 200, { summary: getRiskSummary(getRecentEvents(500)), requests: scored });
+      return sendJson(response, 200, { summary: getRiskSummary(getRecentEvents(500, DEMO_APPLICATION_ID)), requests: scored });
     }
 
     if (request.method === 'GET' && url.pathname === '/api/monitor/responses') {
-      const events = getRecentEvents(500);
+      const events = getRecentEvents(500, DEMO_APPLICATION_ID);
       return sendJson(response, 200, {
         summary: getResponseSummary(events),
         responses: getResponseEvents(events, url.searchParams.get('limit'))
@@ -240,8 +281,8 @@ const server = http.createServer(async (request, response) => {
 
     return sendJson(response, 404, { error: 'Route not found.' });
   } catch (error) {
-    const status = error.message === 'Invalid JSON body' ? 400 : 500;
-    return sendJson(response, status, { error: status === 400 ? error.message : 'Unexpected server error.' });
+    const status = error.status || (error.message === 'Invalid JSON body' ? 400 : 500);
+    return sendJson(response, status, { error: status < 500 ? error.message : 'Unexpected server error.' });
   }
 });
 

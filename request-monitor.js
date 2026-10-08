@@ -65,17 +65,27 @@ function completeRequestObservation(observation, response) {
 
 function recordEvent(event) {
   events.unshift(event);
-  if (events.length > MAX_EVENTS) events.length = MAX_EVENTS;
+  const applicationId = event.applicationId || DEMO_APPLICATION_ID;
+  let seenForApplication = 0;
+  for (let index = 0; index < events.length; index += 1) {
+    if ((events[index].applicationId || DEMO_APPLICATION_ID) !== applicationId) continue;
+    seenForApplication += 1;
+    if (seenForApplication > MAX_EVENTS) {
+      events.splice(index, 1);
+      break;
+    }
+  }
   return event;
 }
 
-function getRecentEvents(limit = 50) {
+function getRecentEvents(limit = 50, applicationId = null) {
   const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), MAX_EVENTS);
-  return events.slice(0, safeLimit);
+  const visible = applicationId ? events.filter((event) => event.applicationId === applicationId) : events;
+  return visible.slice(0, safeLimit);
 }
 
 function getSummary() {
-  const latest = events.slice(0, 100);
+  const latest = getRecentEvents(100, DEMO_APPLICATION_ID);
   const failedLogins = latest.filter((event) => event.endpoint === '/api/login' && event.outcome === 'login-failed').length;
   const byEndpoint = latest.reduce((counts, event) => {
     counts[event.endpoint] = (counts[event.endpoint] || 0) + 1;
@@ -83,7 +93,7 @@ function getSummary() {
   }, {});
 
   return {
-    recordedRequests: events.length,
+    recordedRequests: events.filter((event) => event.applicationId === DEMO_APPLICATION_ID).length,
     failedLogins,
     uniqueIps: new Set(latest.map((event) => event.ip)).size,
     requestsByEndpoint: byEndpoint

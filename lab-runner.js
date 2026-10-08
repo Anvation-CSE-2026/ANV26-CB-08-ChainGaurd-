@@ -1,6 +1,7 @@
 const http = require('node:http');
 const { getRecentEvents, labRequestSecret } = require('./request-monitor');
 const { getDetections } = require('./detection-engine');
+const { DEMO_APPLICATION_ID } = require('./event-contract');
 
 const SCENARIOS = new Set([
   'credential-stuffing',
@@ -52,8 +53,8 @@ async function runLabScenario(type, port) {
   const suffix = (runNumber % 250) + 1;
   const ip = `198.51.100.${suffix}`;
   const secondIp = `203.0.113.${suffix}`;
-  const beforeEvents = new Set(getRecentEvents(500).map((event) => event.id));
-  const beforeAlerts = new Set(getDetections(200).map((alert) => alert.id));
+  const beforeEvents = new Set(getRecentEvents(500, DEMO_APPLICATION_ID).map((event) => event.id));
+  const beforeAlerts = new Set(getDetections(200, DEMO_APPLICATION_ID).map((alert) => alert.id));
   const requests = [];
   const send = async (method, route, options = {}) => {
     const response = await callApi(port, method, route, { ip, ...options });
@@ -91,8 +92,8 @@ async function runLabScenario(type, port) {
     for (let index = 0; index < 20; index += 1) await send('GET', '/api/products', { token, bot: true });
   }
 
-  const newEvents = getRecentEvents(500).filter((event) => !beforeEvents.has(event.id));
-  const newAlerts = getDetections(200).filter((alert) => !beforeAlerts.has(alert.id));
+  const newEvents = getRecentEvents(500, DEMO_APPLICATION_ID).filter((event) => !beforeEvents.has(event.id));
+  const newAlerts = getDetections(200, DEMO_APPLICATION_ID).filter((alert) => !beforeAlerts.has(alert.id));
   const actions = [...new Set(newEvents.map((event) => event.security?.action).filter((action) => action && action !== 'allow'))];
   return {
     scenario: type,

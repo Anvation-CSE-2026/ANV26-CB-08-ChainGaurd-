@@ -8,6 +8,7 @@ function createIntegrationRegistry(adminKey) {
   const configured = typeof adminKey === 'string' && adminKey.length >= 32;
   const adminDigest = configured ? digest(adminKey) : null;
   const applications = new Map();
+  const recentEventTimes = new Map();
 
   function isAuthorized(candidate) {
     return configured && typeof candidate === 'string' &&
@@ -47,7 +48,27 @@ function createIntegrationRegistry(adminKey) {
       timingSafeEqual(application.keyDigest, digest(candidate)));
   }
 
-  return { configured, isAuthorized, listApplications, createApplication, authenticatesApplication };
+  function allowEvent(id, now = Date.now()) {
+    if (!applications.has(id)) return false;
+    const recent = (recentEventTimes.get(id) || []).filter((time) => now - time < 60_000);
+    if (recent.length >= 120) {
+      recentEventTimes.set(id, recent);
+      return false;
+    }
+    recent.push(now);
+    recentEventTimes.set(id, recent);
+    return true;
+  }
+
+  function recordEvent(id, timestamp) {
+    const application = applications.get(id);
+    if (!application) return;
+    application.eventCount += 1;
+    application.lastEventAt = timestamp;
+    application.status = 'receiving-events';
+  }
+
+  return { configured, isAuthorized, listApplications, createApplication, authenticatesApplication, allowEvent, recordEvent };
 }
 
 module.exports = { createIntegrationRegistry };

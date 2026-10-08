@@ -24,3 +24,14 @@ test('owner-only registration returns each app key once and keeps it out of list
   assert.ok(!JSON.stringify(registry.listApplications()).includes('keyDigest'));
   assert.throws(() => registry.createApplication('<script>'), /App name/);
 });
+
+test('each registered app has a bounded synthetic event rate', () => {
+  const registry = createIntegrationRegistry('c'.repeat(40));
+  const { application } = registry.createApplication('Test Portal');
+  for (let index = 0; index < 120; index += 1) assert.equal(registry.allowEvent(application.id, 1_000), true);
+  assert.equal(registry.allowEvent(application.id, 1_000), false);
+  assert.equal(registry.allowEvent(application.id, 61_001), true);
+  registry.recordEvent(application.id, '2026-10-08T12:00:00.000Z');
+  assert.equal(registry.listApplications()[0].eventCount, 1);
+  assert.equal(registry.listApplications()[0].status, 'receiving-events');
+});

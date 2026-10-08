@@ -16,7 +16,27 @@ The sidebar now has an **Integrations** screen. App registration is disabled unl
 
 After configuration, open `/#integrations`, enter the owner key, and register a fictional application such as `Student Portal`. The server generates its ID and a separate random connection key. The connection key is returned only on creation; later app listings contain no keys. The owner key is kept in page memory only, not browser storage. `GET /api/integrations/status` reveals only whether setup is enabled; `GET` and `POST /api/integrations/apps` require the owner key in `X-Chain-Guard-Admin-Key`.
 
-Registrations are **in memory** and reset on server restart or deployment. This is a prototype, not durable credential management. The app key is not yet usable: the authenticated event-ingestion endpoint and connector are the next stages. Do not connect a real application or send production data.
+Registrations are **in memory** and reset on server restart or deployment. This is a prototype, not durable credential management. The app key can now send synthetic events through the endpoint below; an automatic connector is the next stage. Do not connect a real application or send production data.
+
+## Authenticated event ingestion (step 4)
+
+`POST /api/v1/events` accepts one synthetic JSON event with headers `X-Chain-Guard-App-Id` and `X-Chain-Guard-App-Key` from a registered app. It rejects invalid keys, unknown fields, malformed or oversized JSON, and more than 120 events per minute per app. A successful request returns HTTP 202 with its event ID, 0–100 risk score, and any new detection types. The Integrations screen's **Refresh status** button shows each app's received-event count and last event time.
+
+Example fictional event body:
+
+```json
+{
+  "activity": "login",
+  "method": "POST",
+  "statusCode": 401,
+  "outcome": "login-failed",
+  "clientId": "synthetic-client-01",
+  "device": "desktop-browser",
+  "accountFingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}
+```
+
+The app ID comes from the authenticated header, never from the JSON body. The event format intentionally excludes passwords, email addresses, raw tokens, raw IPs, and full URL paths. For this demo, only fictional IDs and records should be used. Connected-app events are scoped by app inside the engine and **not exposed in the public threat monitor**; a protected multi-app dashboard is a later stage. This event API observes completed requests; it does not block a connected application's request.
 
 ## Start
 

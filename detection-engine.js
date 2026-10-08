@@ -108,6 +108,7 @@ function inspectBotAutomation(event, events) {
 }
 
 function detectAbuse(event, allEvents) {
+  if ((event.applicationId || DEMO_APPLICATION_ID) === DEMO_APPLICATION_ID && activityOf(event) === 'api-request') return [];
   const applicationEvents = allEvents.filter((candidate) => sameApplication(event, candidate));
   const candidates = [
     inspectCredentialStuffing(event, applicationEvents),
@@ -136,19 +137,27 @@ function detectAbuse(event, allEvents) {
       risk: candidate.event.risk
     };
     alerts.unshift(alert);
-    if (alerts.length > 200) alerts.length = 200;
+    const olderAlerts = alerts.filter((item) => item.applicationId === alert.applicationId);
+    if (olderAlerts.length > 200) alerts.splice(alerts.indexOf(olderAlerts[200]), 1);
     created.push(alert);
+  }
+  if (recentAlertKeys.size > 2_000) {
+    for (const [key, time] of recentAlertKeys) {
+      if (Date.now() - time > 30_000) recentAlertKeys.delete(key);
+    }
   }
   return created;
 }
 
-function getDetections(limit = 50) {
+function getDetections(limit = 50, applicationId = null) {
   const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
-  return alerts.slice(0, safeLimit);
+  const visible = applicationId ? alerts.filter((alert) => alert.applicationId === applicationId) : alerts;
+  return visible.slice(0, safeLimit);
 }
 
-function getDetectionSummary() {
-  return alerts.reduce((summary, alert) => {
+function getDetectionSummary(applicationId = null) {
+  const visible = applicationId ? alerts.filter((alert) => alert.applicationId === applicationId) : alerts;
+  return visible.reduce((summary, alert) => {
     summary.total += 1;
     summary.byType[alert.type] = (summary.byType[alert.type] || 0) + 1;
     return summary;

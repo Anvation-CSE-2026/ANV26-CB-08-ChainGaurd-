@@ -250,6 +250,9 @@
       .integration-app strong, .integration-app small { display: block; }
       .integration-app strong { font-size: .88rem; }
       .integration-app small { margin-top: 4px; color: #91acc9; font-size: .74rem; }
+      .integration-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 21px; }
+      .integration-list-heading h3 { margin: 0; }
+      .integration-list-heading button { width: auto; margin: 0; padding: 8px 11px; border: 1px solid #416985; color: #bceaff; background: #12304a; font-size: .75rem; }
       .file-panel[hidden] { display: none; }
       .file-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
       .file-heading h2 { margin: 7px 0; font-size: 1.45rem; }
@@ -338,6 +341,7 @@
       body[data-theme="light"] .integration-created strong { color: #17613b; }
       body[data-theme="light"] .integration-created button { color: #fff; background: #16834a; }
       body[data-theme="light"] .integration-app { border-color: #d5e9dc; background: #f8fcf9; }
+      body[data-theme="light"] .integration-list-heading button { border-color: #b9d7c3; color: #17613b; background: #eaf6ed; }
       body[data-theme="light"] .file-account, body[data-theme="light"] .file-note, body[data-theme="light"] .file-summary { color: #587060; }
       body[data-theme="light"] .file-status { color: #16834a; }
       body[data-theme="light"] .file-status.error { color: #b42535; }
@@ -521,7 +525,7 @@
       <section id="integrations" class="integrations-panel" aria-labelledby="integrations-title">
         <div class="eyebrow">CONNECT AN APPLICATION · BUILD STAGE 3</div>
         <h2 id="integrations-title">Integrations</h2>
-        <p>Register a fictional app for the next stage of Chain Guard. App registration is restricted to the project owner; the public demo login does not unlock it.</p>
+        <p>Register a fictional app and receive its synthetic security events. App registration is restricted to the project owner; the public demo login does not unlock it.</p>
         <div id="integration-status" class="integration-status" role="status" aria-live="polite">Checking owner setup…</div>
         <div id="integration-auth" class="integration-auth" hidden>
           <label for="integration-owner-key">Owner key</label>
@@ -533,7 +537,7 @@
         </div>
         <div id="integration-private" class="integration-private" hidden>
           <h3>Register a demo application</h3>
-          <p>Use a fictional name such as “Student Portal”. The connection key appears once. Event sending is the next build stage; this screen does not claim the app is connected yet.</p>
+          <p>Use a fictional name such as “Student Portal”. The connection key appears once. Synthetic events can now be sent through the API; an automatic app connector is the next build stage.</p>
           <form id="integration-form" class="integration-form">
             <label for="integration-name">Application name<input id="integration-name" type="text" maxlength="60" placeholder="Student Portal" required /></label>
             <button type="submit">Register app</button>
@@ -544,6 +548,7 @@
             <button id="integration-copy-key" type="button">Copy key</button>
             <small class="integration-hint">It will not appear again. Registration and keys currently reset when this demo server restarts.</small>
           </div>
+          <div class="integration-list-heading"><h3>Registered apps</h3><button id="integration-refresh" type="button">Refresh status</button></div>
           <div id="integration-apps" class="integration-apps" aria-live="polite"></div>
         </div>
       </section>
@@ -659,7 +664,9 @@
           const title = document.createElement('strong');
           title.textContent = application.name;
           const detail = document.createElement('small');
-          detail.textContent = `${application.id} · Awaiting first event`;
+          detail.textContent = application.eventCount
+            ? `${application.id} · ${application.eventCount} events received · Last event ${new Date(application.lastEventAt).toLocaleString()}`
+            : `${application.id} · Awaiting first event`;
           row.append(title, detail);
           integrationApps.append(row);
         }
@@ -677,6 +684,13 @@
         } catch {
           showIntegrationStatus('Could not check integration setup. Try refreshing the page.', true);
         }
+      }
+
+      async function refreshIntegrationApps() {
+        if (!integrationAdminKey) return;
+        const response = await fetch('/api/integrations/apps', { headers: { 'X-Chain-Guard-Admin-Key': integrationAdminKey } });
+        if (!response.ok) throw new Error('Could not refresh registered applications.');
+        renderIntegrationApps((await response.json()).applications);
       }
 
       document.querySelector('#integration-unlock').addEventListener('click', async () => {
@@ -713,8 +727,7 @@
           integrationConnectionKey.textContent = currentConnectionKey;
           integrationCreated.hidden = false;
           document.querySelector('#integration-name').value = '';
-          const listResponse = await fetch('/api/integrations/apps', { headers: { 'X-Chain-Guard-Admin-Key': integrationAdminKey } });
-          if (listResponse.ok) renderIntegrationApps((await listResponse.json()).applications);
+          await refreshIntegrationApps();
           showIntegrationStatus(`${data.application.name} registered. Save its one-time key before leaving this page.`);
         } catch {
           showIntegrationStatus('Could not reach the integration service.', true);
@@ -728,6 +741,14 @@
           showIntegrationStatus('Connection key copied. Keep it private.');
         } catch {
           showIntegrationStatus('Copy failed. Select and copy the displayed key manually.', true);
+        }
+      });
+      document.querySelector('#integration-refresh').addEventListener('click', async () => {
+        try {
+          await refreshIntegrationApps();
+          showIntegrationStatus('Registered app status refreshed.');
+        } catch {
+          showIntegrationStatus('Could not refresh registered apps.', true);
         }
       });
       loadIntegrationStatus();

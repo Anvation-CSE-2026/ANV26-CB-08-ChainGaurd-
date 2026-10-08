@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { createHash } = require('node:crypto');
 
 const ownerKey = 'test-owner-key-' + 'a'.repeat(32);
 process.env.CHAIN_GUARD_ADMIN_KEY = ownerKey;
@@ -40,6 +41,47 @@ test('registration API requires owner access and never lists app keys', async ()
       body: JSON.stringify({ name: '<script>' })
     });
     assert.equal(invalid.status, 400);
+
+    const eventUrl = `${base}/api/v1/events`;
+    const eventHeaders = {
+      'Content-Type': 'application/json',
+      'X-Chain-Guard-App-Id': created.application.id,
+      'X-Chain-Guard-App-Key': created.connectionKey
+    };
+    const eventBody = (index) => ({
+      activity: 'login', method: 'POST', statusCode: 401,
+      outcome: 'login-failed', clientId: 'student-test-client', device: 'desktop-browser',
+      accountFingerprint: createHash('sha256').update(`fictional-student-${index}`).digest('hex')
+    });
+    assert.equal((await fetch(eventUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(eventBody(0)) })).status, 401);
+    assert.equal((await fetch(eventUrl, { method: 'POST', headers: { ...eventHeaders, 'X-Chain-Guard-App-Key': 'wrong' }, body: JSON.stringify(eventBody(0)) })).status, 401);
+    assert.equal((await fetch(eventUrl, { method: 'POST', headers: { ...eventHeaders, 'Content-Type': 'text/plain' }, body: JSON.stringify(eventBody(0)) })).status, 415);
+    assert.equal((await fetch(eventUrl, { method: 'POST', headers: eventHeaders, body: JSON.stringify({ ...eventBody(0), password: 'forbidden' }) })).status, 422);
+    assert.equal((await fetch(eventUrl, { method: 'POST', headers: eventHeaders, body: JSON.stringify({ padding: 'x'.repeat(9_000) }) })).status, 413);
+
+    let result;
+    for (let index = 0; index < 5; index += 1) {
+      const accepted = await fetch(eventUrl, { method: 'POST', headers: eventHeaders, body: JSON.stringify(eventBody(index)) });
+      assert.equal(accepted.status, 202);
+      result = await accepted.json();
+    }
+    assert.equal(result.accepted, true);
+    assert.equal(result.applicationId, created.application.id);
+    assert.equal(result.risk.score, 20);
+    assert.deepEqual(result.detections, [{ type: 'credential-stuffing', severity: 'high' }]);
+
+    const updatedList = await (await fetch(`${base}/api/integrations/apps`, {
+      headers: { 'X-Chain-Guard-Admin-Key': ownerKey }
+    })).json();
+    assert.equal(updatedList.applications[0].eventCount, 5);
+    assert.equal(updatedList.applications[0].status, 'receiving-events');
+    assert.ok(updatedList.applications[0].lastEventAt);
+
+    const publicRequests = await (await fetch(`${base}/api/monitor/requests?limit=500`)).json();
+    const publicDetections = await (await fetch(`${base}/api/monitor/detections?limit=50`)).json();
+    assert.ok(!JSON.stringify(publicRequests).includes(created.application.id));
+    assert.ok(!JSON.stringify(publicDetections).includes(created.application.id));
+    assert.equal(publicDetections.summary.total, 0);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
