@@ -1,5 +1,7 @@
 # ANV26-CB-08 Chain Guard
 
+ChainGuard demonstrates API abuse detection using simulated attacks such as credential stuffing, scraping, enumeration, token misuse, and bot activity. It identifies suspicious patterns, calculates risk scores, detects potential attack chains, and displays security alerts and risk-based responses.
+
 An API security console for the Chain Guard project. It contains fictional accounts, protected demo routes, five abuse detectors, cumulative risk scoring, security responses, an interactive test lab, and browser-only demo file storage.
 
 ## Connected-application foundation (steps 1–2)
