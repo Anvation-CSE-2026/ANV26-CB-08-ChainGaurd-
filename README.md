@@ -1,4 +1,4 @@
-# Chain Guard demo prototype
+# ANV26-CB-08 Chain Guard
 
 An API security console for the Chain Guard project. It contains fictional accounts, protected demo routes, five abuse detectors, cumulative risk scoring, security responses, an interactive test lab, and browser-only demo file storage.
 
