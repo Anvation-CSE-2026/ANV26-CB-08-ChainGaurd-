@@ -569,7 +569,7 @@
       @media (max-width: 480px) { .lab-grid { grid-template-columns: 1fr; } .topbar-path { display: none; } .risk-values { flex-wrap: wrap; } .risk-value-primary { width: 100%; } .activity-row { grid-template-columns: 56px minmax(0, 1fr) 74px; } .activity-risk { display: none; } }
     </style>
   </head>
-  <body>
+  <body data-theme="light">
     <div id="sidebar-backdrop" class="sidebar-backdrop" hidden></div>
     <div class="app-shell">
       <aside id="sidebar" class="sidebar" aria-label="Chain Guard navigation">
@@ -598,7 +598,7 @@
             <button id="open-sidebar" class="menu-button" type="button" aria-label="Open navigation">☰</button>
             <span class="topbar-path">Workspace <span>/</span> Security overview</span>
           </div>
-          <div class="topbar-actions"><span class="live-pill"><span class="online-dot"></span> Live demo</span><button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">Light theme</button></div>
+          <div class="topbar-actions"><span class="live-pill"><span class="online-dot"></span> Live demo</span><button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="true">Dark theme</button></div>
         </header>
 
         <section id="overview" class="overview workspace-page" data-page="overview" aria-labelledby="overview-title">
@@ -1417,10 +1417,10 @@
         document.body.dataset.theme = isLight ? 'light' : 'dark';
         themeToggle.textContent = isLight ? 'Dark theme' : 'Light theme';
         themeToggle.setAttribute('aria-pressed', String(isLight));
-        localStorage.setItem('chain-guard-theme', theme);
       }
 
-      setTheme(localStorage.getItem('chain-guard-theme') || 'dark');
+      // Every new page load starts light; the toggle applies only to this visit.
+      setTheme('light');
       themeToggle.addEventListener('click', () => {
         setTheme(document.body.dataset.theme === 'light' ? 'dark' : 'light');
       });
